@@ -8,7 +8,8 @@
 #include <string>
 
 namespace cpp_grep{
-    using std::find_if;
+    using std::any_of;
+//    using std::find_if;
     using std::string;
 
     namespace priv{
@@ -19,4 +20,5 @@ namespace cpp_grep{
     bool match_digit_pattern(const string& input_line);
     bool match_word_pattern(const string& input_line);
     bool match_positive_character_grp(const string& input_line, const string& chr_grp);
+    bool match_negative_character_grp(const string& input_line, const string& chr_grp);
 }

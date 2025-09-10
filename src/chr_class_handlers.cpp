@@ -37,13 +37,11 @@ namespace cpp_grep{
      * @return true if any character in the string is a digit, false otherwise.
      */
     bool match_digit_pattern(const string& input_line){
-        auto end_iterator = input_line.end(); // Cache the past-the-end iterator to avoid calculating it twice.
-        auto search_result = find_if(
+        return any_of(
             input_line.begin(),
-            end_iterator,
+            input_line.end(),
             priv::is_digit
         );
-        return search_result != end_iterator;
     }
 
     /**
@@ -52,13 +50,11 @@ namespace cpp_grep{
      * @return true if any character in the string matches the regexp word class, false otherwise.
      */
     bool match_word_pattern(const string& input_line){
-        auto end_iterator = input_line.end();  // Cache the past-the-end iterator to avoid calculating it twice.
-        auto search_result = find_if(
+        return any_of(
             input_line.begin(),
-            end_iterator,
+            input_line.end(),
             priv::is_word
         );
-        return search_result != end_iterator;
     }
 
     /**
@@ -69,14 +65,29 @@ namespace cpp_grep{
      * @return true if any character in the string is contained in chr_grp, false otherwise.
      */
     bool match_positive_character_grp(const string& input_line, const string& chr_grp){
-        auto end_iterator = input_line.end();  // Caching the past-the-end iterator to avoid calculating it twice.
-        auto search_result = find_if(
+        return any_of(
             input_line.begin(),
-            end_iterator,
+            input_line.end(),
             [chr_grp](char chr){  // Using a lambda here due to not knowing the character group in advance.
                 return chr_grp.contains(chr);
             }
         );
-        return search_result != end_iterator;
+    }
+
+    /**
+     * Match a positive character group, i.e. check if any character in the input string
+     * is NOT in the given character set.
+     * @param input_line The input string the check should be performed on.
+     * @param chr_grp The character set used for the check.
+     * @return true if at least one character in the string isn't in in chr_grp, false otherwise.
+     */
+    bool match_negative_character_grp(const string& input_line, const string& chr_grp){
+        return any_of(
+            input_line.begin(),
+            input_line.end(),
+            [chr_grp](char chr){  // Using a lambda here due to not knowing the character group in advance.
+                return !chr_grp.contains(chr);
+            }
+        );
     }
 }

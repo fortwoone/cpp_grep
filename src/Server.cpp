@@ -34,8 +34,14 @@ namespace cpp_grep{
             return match_word_pattern(input_line);
         }
         else if (pattern.starts_with('[') && pattern.ends_with(']')){
-            // Positive character group
+            // Character group
+            // Don't count the brackets while searching, they simply delimit the group itself.
             auto stripped_pattern = pattern.substr(1, pattern.size() - 2);
+            if (stripped_pattern.starts_with('^')){
+                // Negative character group
+                return false;
+            }
+            // Positive character group otherwise.
             return match_positive_character_grp(input_line, stripped_pattern);
         }
         else {
