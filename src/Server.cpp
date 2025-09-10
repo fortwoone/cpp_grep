@@ -2,6 +2,8 @@
 #include <stdexcept>
 #include <string>
 
+#include "chr_class_handlers.hpp"
+
 using std::cerr;
 using std::cin;
 using std::cout;
@@ -11,12 +13,22 @@ using std::runtime_error;
 using std::string;
 using std::unitbuf;
 
-bool match_pattern(const string& input_line, const string& pattern) {
-    if (pattern.length() == 1) {
-        return input_line.find(pattern) != string::npos;
+namespace cpp_grep{
+    namespace priv{
+        constexpr string DIGIT_CLS_PATTERN = "\\d";
     }
-    else {
-        throw runtime_error("Unhandled pattern " + pattern);
+
+    bool match_pattern(const string& input_line, const string& pattern){
+        if (pattern.length() == 1) {
+            return input_line.find(pattern) != string::npos;
+        }
+        else if (pattern == priv::DIGIT_CLS_PATTERN){
+            // Handle digit class.
+            return match_digit_pattern(input_line);
+        }
+        else {
+            throw runtime_error("Unhandled pattern " + pattern);
+        }
     }
 }
 
@@ -47,7 +59,7 @@ int main(int argc, char* argv[]) {
      getline(cin, input_line);
 
      try {
-         if (match_pattern(input_line, pattern)) {
+         if (cpp_grep::match_pattern(input_line, pattern)) {
              return 0;
          } else {
              return 1;
