@@ -15,7 +15,10 @@ using std::unitbuf;
 
 namespace cpp_grep{
     namespace priv{
-        constexpr string DIGIT_CLS_PATTERN = "\\d";
+        // Escaping the slash character itself so no complaints are issued about an unknown escape sequence.
+        // Each pattern constant will have its "printed" value commented next to it for clarity.
+        constexpr string DIGIT_CLS_PATTERN = "\\d";  // "\d"
+        constexpr string WORD_CLS_PATTERN = "\\w";   // "\w"
     }
 
     bool match_pattern(const string& input_line, const string& pattern){
@@ -25,6 +28,10 @@ namespace cpp_grep{
         else if (pattern == priv::DIGIT_CLS_PATTERN){
             // Handle digit class.
             return match_digit_pattern(input_line);
+        }
+        else if (pattern == priv::WORD_CLS_PATTERN){
+            // Handle word class.
+            return match_word_pattern(input_line);
         }
         else {
             throw runtime_error("Unhandled pattern " + pattern);

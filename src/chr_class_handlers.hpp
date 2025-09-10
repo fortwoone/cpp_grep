@@ -13,7 +13,9 @@ namespace cpp_grep{
 
     namespace priv{
         bool is_digit(char chr);
+        bool is_word(char chr);
     }
 
     bool match_digit_pattern(const string& input_line);
+    bool match_word_pattern(const string& input_line);
 }
