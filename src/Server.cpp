@@ -33,6 +33,10 @@ namespace cpp_grep{
             // Handle word class.
             return match_word_pattern(input_line);
         }
+        else if (pattern.starts_with('[') && pattern.ends_with(']')){
+            // Positive character group
+            return match_positive_character_grp(input_line, pattern);
+        }
         else {
             throw runtime_error("Unhandled pattern " + pattern);
         }

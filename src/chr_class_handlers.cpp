@@ -60,4 +60,23 @@ namespace cpp_grep{
         );
         return search_result != end_iterator;
     }
+
+    /**
+     * Match a positive character group, i.e. check if any character in the input string
+     * is in the given character set.
+     * @param input_line The input string the check should be performed on.
+     * @param chr_grp The character set used for the check.
+     * @return true if any character in the string is contained in chr_grp, false otherwise.
+     */
+    bool match_positive_character_grp(const string& input_line, const string& chr_grp){
+        auto end_iterator = input_line.end();  // Caching the past-the-end iterator to avoid calculating it twice.
+        auto search_result = find_if(
+            input_line.begin(),
+            end_iterator,
+            [chr_grp](char chr){  // Using a lambda here due to not knowing the character group in advance.
+                return chr_grp.contains(chr);
+            }
+        );
+        return search_result != end_iterator;
+    }
 }

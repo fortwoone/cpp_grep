@@ -18,4 +18,5 @@ namespace cpp_grep{
 
     bool match_digit_pattern(const string& input_line);
     bool match_word_pattern(const string& input_line);
+    bool match_positive_character_grp(const string& input_line, const string& chr_grp);
 }
