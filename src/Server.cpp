@@ -35,7 +35,8 @@ namespace cpp_grep{
         }
         else if (pattern.starts_with('[') && pattern.ends_with(']')){
             // Positive character group
-            return match_positive_character_grp(input_line, pattern);
+            auto stripped_pattern = pattern.substr(1, pattern.size() - 2);
+            return match_positive_character_grp(input_line, stripped_pattern);
         }
         else {
             throw runtime_error("Unhandled pattern " + pattern);
