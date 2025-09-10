@@ -39,7 +39,7 @@ namespace cpp_grep{
             auto stripped_pattern = pattern.substr(1, pattern.size() - 2);
             if (stripped_pattern.starts_with('^')){
                 // Negative character group
-                return false;
+                return match_negative_character_grp(input_line, stripped_pattern.substr(1));
             }
             // Positive character group otherwise.
             return match_positive_character_grp(input_line, stripped_pattern);
