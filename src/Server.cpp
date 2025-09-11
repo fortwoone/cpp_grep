@@ -46,11 +46,12 @@ namespace cpp_grep{
     }
 
     bool match_here(const string& input_line, const vector<RegexPatternPortion>& portions, uint input_index, uint pattern_index){
-        if (input_index >= input_line.size()){
-            return false;
-        }
         if (pattern_index >= portions.size()){
             return true;
+        }
+
+        if (input_index >= input_line.size()){
+            return false;
         }
 
         uint check_pattern_idx = pattern_index;
