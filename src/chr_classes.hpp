@@ -6,6 +6,7 @@
 
 #include <cstdint>
 #include <cstring>
+#include <memory>
 #include <new>
 #include <stdexcept>
 #include <string>
@@ -20,8 +21,11 @@ namespace cpp_grep{
 
     using std::invalid_argument;
     using std::logic_error;
+    using std::make_unique;
     using std::memcpy;
     using std::string;
+    using std::swap;
+    using std::unique_ptr;
     using std::unordered_set;
     using std::vector;
 
@@ -45,6 +49,7 @@ namespace cpp_grep{
         ZERO_OR_ONE,    // The string must contain at most one occurrence of this literal at the current location.
         ANY_LEAST_ONE,  // At least one unspecified character.
         ANY_MOST_ONE,   // At most one unspecified character.
+        OR,             // Must validate either one of two patterns.
     };
 
     namespace priv{
@@ -66,11 +71,16 @@ namespace cpp_grep{
             char_group = {};  // Initialise the field if using this constructor.
         };
     };
+
+    // Forward declaration here because pattern objects need to be stored in this struct (vectors),
+    // so RegexPatternPortion has to be declared.
+    struct OrCharClass;
     // endregion
 
     union URegexPatternPortionInfo{
         LiteralCharClass literal_cls{};  // NOLINT
         GroupCharClass grp_char_cls;
+        unique_ptr<OrCharClass> or_char_cls;
 
         // Using placement new so GroupCharClass can still be used
         // inside despite its non-trivial constructor.
@@ -122,6 +132,7 @@ namespace cpp_grep{
             RegexPatternPortion(const string& char_grp, bool positive_check);
             RegexPatternPortion(const string& char_grp, bool positive_check, uint start);
             RegexPatternPortion(const string& char_grp, bool positive_check, uint start, uint end);
+            RegexPatternPortion(const vector<RegexPatternPortion>& subpattern1, const vector<RegexPatternPortion>& subpattern2);
 
             RegexPatternPortion(const RegexPatternPortion& val);
 
@@ -137,7 +148,17 @@ namespace cpp_grep{
             [[nodiscard]] string get_char_grp() const;
             [[nodiscard]] bool is_positive_grp() const;
 
+            // GETTERS (OR CHAR. CLASS)
+            [[nodiscard]] vector<RegexPatternPortion> get_subpattern1() const;
+            [[nodiscard]] vector<RegexPatternPortion> get_subpattern2() const;
 
+    };
+
+    struct OrCharClass{
+        vector<RegexPatternPortion> subpattern1{}, subpattern2{};
+
+        OrCharClass(){};
+        OrCharClass(const vector<RegexPatternPortion>& subpattern1, const vector<RegexPatternPortion>& subpattern2);
     };
 
     vector<RegexPatternPortion> extract_patterns(const string& input);

@@ -146,6 +146,16 @@ namespace cpp_grep{
                     return match_here(input_line.substr(input_index + 1), portions, 0, check_pattern_idx);
                 }
             }
+            case ECharClass::OR:
+            {
+                const auto& pattern1 = portion.get_subpattern1();
+                const auto& pattern2 = portion.get_subpattern2();
+                if (!match_here(input_line, pattern1, input_index, 0) && !match_here(input_line, pattern2, input_index, 0)){
+                    return false;
+                }
+                check_pattern_idx++;
+                return match_here(input_line.substr(input_index + 1), portions, 0, check_pattern_idx);
+            }
             default:
                 break;
         }
@@ -184,13 +194,6 @@ namespace cpp_grep{
             }
             // Positive character group otherwise.
             return match_positive_character_grp(input_line, stripped_pattern);
-        }
-        else if (pattern.starts_with('(') && pattern.contains('|') && pattern.ends_with(')')){
-            // "Either-or"
-            string::size_type sep_position = pattern.find('|');
-            string pattern_a = pattern.substr(1, sep_position - 1);
-            string pattern_b = pattern.substr(sep_position + 1, pattern.size() - 1);
-            return match_pattern(input_line, pattern_a) || match_pattern(input_line, pattern_b);
         }
         else if (pattern.length() > 1){
             vector<RegexPatternPortion> portions = extract_patterns(pattern);

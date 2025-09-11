@@ -24,6 +24,9 @@ namespace cpp_grep{
         }
     }
 
+    OrCharClass::OrCharClass(const vector<RegexPatternPortion>& subpattern1, const vector<RegexPatternPortion>& subpattern2)
+    : subpattern1(subpattern1), subpattern2(subpattern2){}
+
     // region RegexPatternPortion: Ctors
 
     /**
@@ -207,6 +210,25 @@ namespace cpp_grep{
     }
 
     /**
+     * Initialise a regex pattern portion object with two subpatterns.
+     * @param subpattern1 The first subpattern.
+     * @param subpattern2 The second subpattern.
+     * @throw invalid_argument if either subpattern is empty.
+     */
+    RegexPatternPortion::RegexPatternPortion(const vector<RegexPatternPortion>& subpattern1, const vector<RegexPatternPortion>& subpattern2){
+        if (subpattern1.empty()){
+            throw invalid_argument("Subpattern 1 cannot be empty");
+        }
+        if (subpattern2.empty()){
+            throw invalid_argument("Subpattern 2 cannot be empty");
+        }
+        char_cls = ECharClass::OR;
+        start = 0;
+        end = 1;
+        portion_info.or_char_cls = make_unique<OrCharClass>(subpattern1, subpattern2);
+    }
+
+    /**
      * Copy constructor for RegexPatternPortion.
      * @param val The original match object.
      */
@@ -219,7 +241,6 @@ namespace cpp_grep{
     // endregion
 
     // region RegexPatternPortion : Getters
-
     /**
      * Get the start of the range affected by this portion object.
      * @return The start of the range affected by this portion object.
@@ -265,6 +286,22 @@ namespace cpp_grep{
             throw logic_error("Cannot retrieve a char group string from a non-char. group pattern portion object");
         }
         return portion_info.grp_char_cls.positive_match;
+    }
+    // endregion
+
+    // region RegexPatternPortion: Getters (or char. class)
+    vector<RegexPatternPortion> RegexPatternPortion::get_subpattern1() const{
+        if (char_cls != ECharClass::OR){
+            throw logic_error("Cannot retrieve a subpattern from a non-or pattern portion object");
+        }
+        return portion_info.or_char_cls->subpattern1;
+    }
+
+    vector<RegexPatternPortion> RegexPatternPortion::get_subpattern2() const{
+        if (char_cls != ECharClass::OR){
+            throw logic_error("Cannot retrieve a subpattern from a non-or pattern portion object");
+        }
+        return portion_info.or_char_cls->subpattern2;
     }
     // endregion
 
@@ -323,6 +360,19 @@ namespace cpp_grep{
                 );
                 idx++;
                 temp.erase(range_start, range_end);
+            }
+            else if (temp.starts_with('(') and temp.contains('|') and temp.contains(')')){
+                string::size_type sep_position = temp.find('|'), paren_position = temp.find(')');
+                if (paren_position < sep_position){
+                    throw invalid_argument("Missing parenthesis to close 'or' group");
+                }
+                string subpattern_a = temp.substr(1, sep_position - 2);
+                string subpattern_b = temp.substr(sep_position + 1, paren_position - sep_position - 2);
+                vector<RegexPatternPortion> subpattern1 = extract_patterns(subpattern_a);
+                vector<RegexPatternPortion> subpattern2 = extract_patterns(subpattern_b);
+                ret.emplace_back(subpattern1, subpattern2);
+                idx++;
+                temp.erase(0, paren_position + 1);
             }
             else if (temp[1] == '+'){
                 // One or more
