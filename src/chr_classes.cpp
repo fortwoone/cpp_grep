@@ -227,9 +227,17 @@ namespace cpp_grep{
         string temp = input;
         vector<RegexPatternPortion> ret;
         uint idx = 0;
+        size_t orig_size = input.size();
         while (!temp.empty()){
             cerr << temp << "\n";
-            if (temp.starts_with(priv::DIGIT_CLS_PATTERN)){
+            if (temp.size() == orig_size && temp[0] == '^'){
+                ret.emplace_back(
+                    ECharClass::START_ANCHOR
+                );
+                idx++;
+                temp.erase(0, 1);
+            }
+            else if (temp.starts_with(priv::DIGIT_CLS_PATTERN)){
                 ret.emplace_back(
                     ECharClass::DIGIT,
                     idx

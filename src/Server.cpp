@@ -63,7 +63,12 @@ namespace cpp_grep{
             return false;
         }
 
-        return match_here(input_line, portions, input_index + 1, check_pattern_idx);
+        return match_here(
+            input_line,
+            portions,
+            input_index + (portions.at(pattern_index).get_char_cls() == ECharClass::START_ANCHOR ? 0 : 1),
+            check_pattern_idx
+        );
     }
 
     bool match_pattern(const string& input_line, const string& pattern){
