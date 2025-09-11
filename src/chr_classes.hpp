@@ -127,8 +127,7 @@ namespace cpp_grep{
             [[nodiscard]] string get_char_grp() const;
             [[nodiscard]] bool is_positive_grp() const;
 
-            // MATCH CHECK
-            bool operator()(const string& input_val) const;
+
     };
 
     vector<RegexPatternPortion> extract_patterns(const string& input);

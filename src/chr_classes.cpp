@@ -217,30 +217,6 @@ namespace cpp_grep{
     }
     // endregion
 
-    /**
-     * Check if this pattern portion matches in the string.
-     * @param input_val The string to perform the check on.
-     * @return true if a match happened, false otherwise.
-     */
-    bool RegexPatternPortion::operator()(const string& input_val) const{
-        using enum ECharClass; // Shorthand so we don't have to respecify the enum name every time.
-
-        switch(char_cls){
-            case LITERAL:
-                return input_val.contains(portion_info.literal_cls.literal);
-            case DIGIT:
-                return priv::is_digit(input_val[start]);
-            case WORD:
-                return priv::is_word(input_val[start]);
-            case CHAR_GROUP:
-                bool contained = portion_info.grp_char_cls.char_group.contains(input_val[start]);
-                if (portion_info.grp_char_cls.positive_match){
-                    return contained;
-                }
-                return !contained;
-        }
-    }
-
     vector<RegexPatternPortion> extract_patterns(const string& input){
         string temp = input;
         vector<RegexPatternPortion> ret;

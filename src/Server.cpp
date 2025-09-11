@@ -15,6 +15,52 @@ using std::string;
 using std::unitbuf;
 
 namespace cpp_grep{
+
+    bool match_char(char input, const vector<RegexPatternPortion>& portions, uint& pattern_index){
+        if (pattern_index >= portions.size()){
+            return false;
+        }
+        const auto& portion = portions.at(pattern_index);
+
+        using enum ECharClass;
+        switch (portion.get_char_cls()){
+            case LITERAL:
+                pattern_index++;
+                return input == portion.get_literal();
+            case DIGIT:
+                pattern_index++;
+                return priv::is_digit(input);
+            case WORD:
+                pattern_index++;
+                return priv::is_word(input);
+            case CHAR_GROUP:
+                pattern_index++;
+                if (portion.is_positive_grp()){
+                    return portion.get_char_grp().contains(input);
+                }
+                else{
+                    return !portion.get_char_grp().contains(input);
+                }
+        }
+    }
+
+    bool match_here(const string& input_line, const vector<RegexPatternPortion>& portions, uint input_index, uint pattern_index){
+        if (input_index >= input_line.size()){
+            return false;
+        }
+        if (pattern_index >= portions.size()){
+            return true;
+        }
+
+        uint check_pattern_idx = pattern_index;
+
+        if (!match_char(input_line[input_index], portions, check_pattern_idx)){
+            return false;
+        }
+
+        return match_here(input_line, portions, input_index + 1, pattern_index);
+    }
+
     bool match_pattern(const string& input_line, const string& pattern){
         if (pattern.length() == 1) {
             return input_line.find(pattern) != string::npos;
@@ -40,13 +86,12 @@ namespace cpp_grep{
         }
         else if (pattern.length() > 1){
             vector<RegexPatternPortion> portions = extract_patterns(pattern);
-            return all_of(
-                portions.begin(),
-                portions.end(),
-                [input_line](RegexPatternPortion& val){
-                    return val(input_line);
+            for (size_t start = 0; start < input_line.size(); ++start){
+                if (match_here(input_line, portions, start, 0)){
+                    return true;
                 }
-            );
+            }
+            return false;
         }
         else {
             throw runtime_error("Unhandled pattern " + pattern);
