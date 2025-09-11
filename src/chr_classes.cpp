@@ -225,7 +225,7 @@ namespace cpp_grep{
         char_cls = ECharClass::OR;
         start = 0;
         end = 1;
-        portion_info.or_char_cls = make_unique<OrCharClass>(subpattern1, subpattern2);
+        portion_info.or_char_cls = make_shared<OrCharClass>(subpattern1, subpattern2);
     }
 
     /**
@@ -366,8 +366,8 @@ namespace cpp_grep{
                 if (paren_position < sep_position){
                     throw invalid_argument("Missing parenthesis to close 'or' group");
                 }
-                string subpattern_a = temp.substr(1, sep_position - 2);
-                string subpattern_b = temp.substr(sep_position + 1, paren_position - sep_position - 2);
+                string subpattern_a = temp.substr(1, sep_position - 1);
+                string subpattern_b = temp.substr(sep_position + 1, paren_position - sep_position - 1);
                 vector<RegexPatternPortion> subpattern1 = extract_patterns(subpattern_a);
                 vector<RegexPatternPortion> subpattern2 = extract_patterns(subpattern_b);
                 ret.emplace_back(subpattern1, subpattern2);

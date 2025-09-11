@@ -21,11 +21,11 @@ namespace cpp_grep{
 
     using std::invalid_argument;
     using std::logic_error;
-    using std::make_unique;
+    using std::make_shared;
     using std::memcpy;
     using std::string;
     using std::swap;
-    using std::unique_ptr;
+    using std::shared_ptr;
     using std::unordered_set;
     using std::vector;
 
@@ -80,7 +80,7 @@ namespace cpp_grep{
     union URegexPatternPortionInfo{
         LiteralCharClass literal_cls{};  // NOLINT
         GroupCharClass grp_char_cls;
-        unique_ptr<OrCharClass> or_char_cls;
+        shared_ptr<OrCharClass> or_char_cls;
 
         // Using placement new so GroupCharClass can still be used
         // inside despite its non-trivial constructor.
