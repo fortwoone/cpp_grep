@@ -1,6 +1,7 @@
 #include <iostream>
 #include <stdexcept>
 #include <string>
+#include <utility>
 
 #include "chr_class_handlers.hpp"
 #include "chr_classes.hpp"
@@ -13,10 +14,11 @@ using std::getline;
 using std::runtime_error;
 using std::string;
 using std::unitbuf;
+using std::unreachable;
 
 namespace cpp_grep{
 
-    bool match_char(char input, const vector<RegexPatternPortion>& portions, uint& pattern_index, uint input_idx){
+    bool match_char(char input, const vector<RegexPatternPortion>& portions, uint& pattern_index){
         if (pattern_index >= portions.size()){
             return false;
         }
@@ -41,11 +43,9 @@ namespace cpp_grep{
                 else {
                     return !portion.get_char_grp().contains(input);
                 }
-            case START_ANCHOR:
-                pattern_index++;
-                return (input_idx == 0);
+            default:
+                unreachable();
         }
-        return false;
     }
 
     bool match_here(const string& input_line, const vector<RegexPatternPortion>& portions, uint input_index, uint pattern_index){
@@ -53,20 +53,34 @@ namespace cpp_grep{
             return true;
         }
 
+        auto portion = portions.at(pattern_index);
+
         if (input_index >= input_line.size()){
-            return false;
+            return portion.get_char_cls() == ECharClass::END_ANCHOR;
+        }
+
+        if (portion.get_char_cls() == ECharClass::START_ANCHOR){
+            if (input_index > 0){
+                return false;
+            }
+            return match_here(
+                input_line,
+                portions,
+                input_index,
+                pattern_index + 1
+            );
         }
 
         uint check_pattern_idx = pattern_index;
 
-        if (!match_char(input_line[input_index], portions, check_pattern_idx, input_index)){
+        if (!match_char(input_line[input_index], portions, check_pattern_idx)){
             return false;
         }
 
         return match_here(
             input_line,
             portions,
-            input_index + (portions.at(pattern_index).get_char_cls() == ECharClass::START_ANCHOR ? 0 : 1),
+            input_index + 1,
             check_pattern_idx
         );
     }

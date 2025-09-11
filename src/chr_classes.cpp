@@ -12,7 +12,8 @@ namespace cpp_grep{
         const unordered_set<ECharClass> NONSTRUCT_CHRCLASSES = {
             ECharClass::DIGIT,
             ECharClass::WORD,
-            ECharClass::START_ANCHOR
+            ECharClass::START_ANCHOR,
+            ECharClass::END_ANCHOR,
         };
 
         bool is_nonstruct_chr_class(ECharClass cls){
@@ -48,10 +49,10 @@ namespace cpp_grep{
     }
 
     /**
-     * Initialise a non-detailed regex pattern portion object (digit, word or start anchor).
+     * Initialise a non-detailed regex pattern portion object (digit, word or start/end anchor).
      * The span's start will be set to 0 and its end to 1.
      * @param char_cls The character class to select.
-     * @throw invalid_argument if the character class is not one of (digit, word, start anchor).
+     * @throw invalid_argument if the character class is not one of (digit, word, start/end anchor).
      */
     RegexPatternPortion::RegexPatternPortion(ECharClass char_cls){
         if (priv::is_nonstruct_chr_class(char_cls)){
@@ -64,11 +65,11 @@ namespace cpp_grep{
     }
 
     /**
-     * Initialise a non-detailed regex pattern portion object (digit, word or start anchor).
+     * Initialise a non-detailed regex pattern portion object (digit, word or start/end anchor).
      * The span's start will be set to start and its end to start + 1.
      * @param char_cls The character class to select.
      * @param start The portion's start.
-     * @throw invalid_argument if the character class is not one of (digit, word, start anchor).
+     * @throw invalid_argument if the character class is not one of (digit, word, start/end anchor).
      */
     RegexPatternPortion::RegexPatternPortion(ECharClass char_cls, uint start){
         if (priv::is_nonstruct_chr_class(char_cls)){
@@ -81,11 +82,11 @@ namespace cpp_grep{
     }
 
     /**
-     * Initialise a non-detailed regex pattern portion object (digit, word or start anchor).
+     * Initialise a non-detailed regex pattern portion object (digit, word or start/end anchor).
      * @param char_cls The character class to select.
      * @param start The span's start.
      * @param end The span's end. Must be bigger than start.
-     * @throw invalid_argument if end <= start or the character class is not one of (digit, word, start anchor).
+     * @throw invalid_argument if end <= start or the character class is not one of (digit, word, start/end anchor).
      */
     RegexPatternPortion::RegexPatternPortion(ECharClass char_cls, uint start, uint end){
         if (end <= start){
@@ -233,6 +234,13 @@ namespace cpp_grep{
             if (temp.size() == orig_size && temp[0] == '^'){
                 ret.emplace_back(
                     ECharClass::START_ANCHOR
+                );
+                idx++;
+                temp.erase(0, 1);
+            }
+            else if (temp.size() == 1 && temp[0] == '$'){
+                ret.emplace_back(
+                    ECharClass::END_ANCHOR
                 );
                 idx++;
                 temp.erase(0, 1);

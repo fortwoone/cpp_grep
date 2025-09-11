@@ -39,6 +39,7 @@ namespace cpp_grep{
         WORD,           // Any word character at this position.
         CHAR_GROUP,     // Any character in a given group.
         START_ANCHOR,   // The string must start with the given expression afterwards.
+        END_ANCHOR,     // The string must end with the given expression (specified before).
     };
 
     namespace priv{
