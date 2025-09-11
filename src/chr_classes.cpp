@@ -3,6 +3,9 @@
 //
 
 #include "chr_classes.hpp"
+#include <iostream>
+
+using std::cerr;
 
 namespace cpp_grep{
     namespace priv{
@@ -243,6 +246,7 @@ namespace cpp_grep{
         vector<RegexPatternPortion> ret;
         uint idx = 0;
         while (!temp.empty()){
+            cerr << temp << "\n";
             if (temp.starts_with(priv::DIGIT_CLS_PATTERN)){
                 ret.emplace_back(
                     ECharClass::DIGIT,
