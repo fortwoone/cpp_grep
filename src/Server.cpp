@@ -3,6 +3,7 @@
 #include <string>
 
 #include "chr_class_handlers.hpp"
+#include "chr_classes.hpp"
 
 using std::cerr;
 using std::cin;
@@ -14,13 +15,6 @@ using std::string;
 using std::unitbuf;
 
 namespace cpp_grep{
-    namespace priv{
-        // Escaping the slash character itself so no complaints are issued about an unknown escape sequence.
-        // Each pattern constant will have its "printed" value commented next to it for clarity.
-        constexpr string DIGIT_CLS_PATTERN = "\\d";  // "\d"
-        constexpr string WORD_CLS_PATTERN = "\\w";   // "\w"
-    }
-
     bool match_pattern(const string& input_line, const string& pattern){
         if (pattern.length() == 1) {
             return input_line.find(pattern) != string::npos;
@@ -43,6 +37,16 @@ namespace cpp_grep{
             }
             // Positive character group otherwise.
             return match_positive_character_grp(input_line, stripped_pattern);
+        }
+        else if (pattern.length() > 1){
+            vector<RegexPatternPortion> portions = extract_patterns(pattern);
+            return all_of(
+                portions.begin(),
+                portions.end(),
+                [input_line](RegexPatternPortion& val){
+                    return val(input_line);
+                }
+            )
         }
         else {
             throw runtime_error("Unhandled pattern " + pattern);

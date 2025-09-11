@@ -9,6 +9,7 @@
 
 namespace cpp_grep{
     using std::any_of;
+    using std::all_of;
 //    using std::find_if;
     using std::string;
 
