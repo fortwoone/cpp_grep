@@ -42,6 +42,7 @@ namespace cpp_grep{
                     return !portion.get_char_grp().contains(input);
                 }
             case START_ANCHOR:
+                pattern_index++;
                 return (input_idx == 0);
         }
         return false;
