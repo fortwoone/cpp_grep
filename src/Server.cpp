@@ -29,12 +29,6 @@ namespace cpp_grep{
             case LITERAL:
                 pattern_index++;
                 return input == portion.get_literal();
-            case ONE_OR_MORE:
-                if (input == portion.get_literal()){
-                    return true;
-                }
-                pattern_index++;
-                return match_char(input, portions, pattern_index);
             case DIGIT:
                 pattern_index++;
                 return priv::is_digit(input);
