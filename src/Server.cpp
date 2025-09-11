@@ -26,6 +26,9 @@ namespace cpp_grep{
 
         using enum ECharClass;
         switch (portion.get_char_cls()){
+            case ANY:
+                pattern_index++;
+                return true;
             case LITERAL:
                 pattern_index++;
                 return input == portion.get_literal();
@@ -48,7 +51,7 @@ namespace cpp_grep{
         }
     }
 
-    bool match_here(const string& input_line, const vector<RegexPatternPortion>& portions, uint input_index, uint pattern_index){
+    bool match_here(const string& input_line, const vector<RegexPatternPortion>& portions, uint input_index, uint pattern_index){  // NOLINT
         if (pattern_index >= portions.size()){
             return true;
         }

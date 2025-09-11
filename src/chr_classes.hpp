@@ -34,6 +34,7 @@ namespace cpp_grep{
 
     // An enum representing all supported character classes.
     enum class ECharClass: ubyte{
+        ANY,            // Match any character at that position.
         LITERAL,        // Any literal character (exact match).
         DIGIT,          // Any digit character at this position.
         WORD,           // Any word character at this position.
@@ -109,7 +110,7 @@ namespace cpp_grep{
 
         public:
             // CTORS
-
+            RegexPatternPortion();
             explicit RegexPatternPortion(char literal);
             RegexPatternPortion(char literal, ubyte one_or_more);
             RegexPatternPortion(char literal, uint idx);

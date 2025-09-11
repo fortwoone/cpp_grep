@@ -27,6 +27,16 @@ namespace cpp_grep{
     // region RegexPatternPortion: Ctors
 
     /**
+     * Initialise a pattern portion object.
+     * When matching a pattern, this will match any character.
+     */
+    RegexPatternPortion::RegexPatternPortion(){
+        char_cls = ECharClass::ANY;
+        start = 0;
+        end = 1;
+    }
+
+    /**
      * Initialise a literal regex pattern portion object.
      * The span's start will be set to 0 and its end to 1.
      * @param literal The literal character to check for.
@@ -272,6 +282,7 @@ namespace cpp_grep{
                 temp.erase(0, 1);
             }
             else if (temp.starts_with(priv::DIGIT_CLS_PATTERN)){
+                // Digit class
                 ret.emplace_back(
                     ECharClass::DIGIT,
                     idx
@@ -280,6 +291,7 @@ namespace cpp_grep{
                 temp.erase(0, priv::DIGIT_CLS_PATTERN.size());
             }
             else if (temp.starts_with(priv::WORD_CLS_PATTERN)){
+                // Word class
                 ret.emplace_back(
                     ECharClass::WORD,
                     idx
@@ -288,6 +300,7 @@ namespace cpp_grep{
                 temp.erase(0, priv::WORD_CLS_PATTERN.size());
             }
             else if (temp.starts_with('[') && temp.contains(']')){
+                // Character groups
                 uint range_start = 0;
                 uint range_end = temp.find(']');
                 string stripped_char_grp = temp.substr(1, range_end - 1);
@@ -304,6 +317,7 @@ namespace cpp_grep{
                 temp.erase(range_start, range_end);
             }
             else if (temp[1] == '+'){
+                // One or more
                 ret.emplace_back(
                     temp[0],
                     priv::FLG_ONE_OR_MORE
@@ -312,12 +326,19 @@ namespace cpp_grep{
                 temp.erase(0, 2);
             }
             else if (temp[1] == '?'){
+                // Zero or one
                 ret.emplace_back(
                     temp[0],
                     priv::FLG_ZERO_OR_ONE
                 );
                 idx++;
                 temp.erase(0, 2);
+            }
+            else if (temp[0] == '.'){
+                // Wildcard
+                ret.emplace_back();
+                idx++;
+                temp.erase(0, 1);
             }
             else{
                 ret.emplace_back(
