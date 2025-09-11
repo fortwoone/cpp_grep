@@ -46,6 +46,8 @@ namespace cpp_grep{
                 else {
                     return !portion.get_char_grp().contains(input);
                 }
+            case END_ANCHOR:
+                return false;
             default:
                 unreachable();
         }
