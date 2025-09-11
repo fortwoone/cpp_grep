@@ -59,7 +59,7 @@ namespace cpp_grep{
             return true;
         }
 
-        auto portion = portions.at(pattern_index);
+        const auto& portion = portions.at(pattern_index);
 
         if (input_index >= input_line.size()){
             return portion.get_char_cls() == ECharClass::END_ANCHOR;
@@ -77,7 +77,28 @@ namespace cpp_grep{
             );
         }
 
-        uint check_pattern_idx = pattern_index;
+        uint check_pattern_idx;
+        if (portion.get_char_cls() == ECharClass::ONE_OR_MORE){
+            if ((pattern_index + 1) < (portions.size() - 1)){
+                const auto& next_portion = portions.at(pattern_index + 1);
+                if (
+                    next_portion.get_char_cls() == ECharClass::LITERAL
+                    && next_portion.get_literal() == portion.get_literal()
+                    && (
+                        input_index + 2 >= input_line.size()
+                        || input_line[input_index + 2] != portion.get_literal()
+                    )
+                ){
+                    check_pattern_idx = pattern_index + 1;
+                }
+            }
+            else{
+                check_pattern_idx = pattern_index;
+            }
+        }
+        else{
+            check_pattern_idx = pattern_index;
+        }
 
         if (!match_char(input_line[input_index], portions, check_pattern_idx)){
             return false;
