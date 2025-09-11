@@ -59,7 +59,7 @@ namespace cpp_grep{
             return false;
         }
 
-        return match_here(input_line, portions, input_index + 1, pattern_index);
+        return match_here(input_line, portions, input_index + 1, check_pattern_idx);
     }
 
     bool match_pattern(const string& input_line, const string& pattern){
@@ -87,7 +87,7 @@ namespace cpp_grep{
         }
         else if (pattern.length() > 1){
             vector<RegexPatternPortion> portions = extract_patterns(pattern);
-            for (size_t start = 0; start < input_line.size(); ++start){
+            for (size_t start = 0; start <= input_line.size(); ++start){
                 if (match_here(input_line, portions, start, 0)){
                     return true;
                 }
