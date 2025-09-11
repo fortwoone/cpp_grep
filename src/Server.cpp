@@ -77,27 +77,32 @@ namespace cpp_grep{
             );
         }
 
-        uint check_pattern_idx;
+        uint check_pattern_idx = pattern_index;
+
         if (portion.get_char_cls() == ECharClass::ONE_OR_MORE){
-            if ((pattern_index + 1) < (portions.size() - 1)){
-                const auto& next_portion = portions.at(pattern_index + 1);
-                if (
-                    next_portion.get_char_cls() == ECharClass::LITERAL
-                    && next_portion.get_literal() == portion.get_literal()
-                    && (
-                        input_index + 2 >= input_line.size()
-                        || input_line[input_index + 2] != portion.get_literal()
-                    )
-                ){
-                    check_pattern_idx = pattern_index + 1;
-                }
+            // Handle matches separately.
+            uint count = 0;
+            while (input_line[input_index + count] == portion.get_literal()){
+                count++;
             }
-            else{
-                check_pattern_idx = pattern_index;
+            if (!count) {
+                // Fail if none were found.
+                return false;
             }
-        }
-        else{
-            check_pattern_idx = pattern_index;
+            check_pattern_idx++;
+            if (portions.size() <= check_pattern_idx){
+                return true;
+            }
+            else if (
+                portions.at(check_pattern_idx).get_char_cls() == ECharClass::LITERAL
+                && portions.at(check_pattern_idx).get_literal() == portion.get_literal()
+            ){
+                // Edge case: if a literal check is added with an identical literal
+                // to the one used in this pattern portion, move the subindex backwards by one
+                // so the literal check can still count as true.
+                count--;
+            }
+            return match_here(input_line.substr(input_index + count), portions, 0, check_pattern_idx);
         }
 
         if (!match_char(input_line[input_index], portions, check_pattern_idx)){
