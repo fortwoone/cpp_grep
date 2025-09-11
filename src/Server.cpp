@@ -130,7 +130,7 @@ namespace cpp_grep{
                 ){
                     char next_literal = portions.at(pattern_index + 1).get_literal();
                     uint count = 0;
-                    while (input_line[input_index + count] != next_literal){
+                    while (input_line[input_index + count] != next_literal && (input_index + count) < input_line.size()){
                         count++;
                     }
                     if (!count){
