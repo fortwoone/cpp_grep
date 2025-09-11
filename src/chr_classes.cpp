@@ -27,6 +27,8 @@ namespace cpp_grep{
     OrCharClass::OrCharClass(const vector<RegexPatternPortion>& subpattern1, const vector<RegexPatternPortion>& subpattern2)
     : subpattern1(subpattern1), subpattern2(subpattern2){}
 
+    PatternCharClass::PatternCharClass(const vector<RegexPatternPortion>& subpattern): subpattern(subpattern){}
+
     // region RegexPatternPortion: Ctors
 
     /**
@@ -229,6 +231,22 @@ namespace cpp_grep{
     }
 
     /**
+     * Initialise a pattern regex portion object.
+     * @param subpattern The corresponding subpattern.
+     * @throw invalid_argument if the subpattern is empty.
+     */
+    RegexPatternPortion::RegexPatternPortion(const vector<RegexPatternPortion>& subpattern){
+        if (subpattern.empty()){
+            throw invalid_argument("The subpattern cannot be empty");
+        }
+
+        char_cls = ECharClass::PATTERN;
+        start = 0;
+        end = 1;
+        portion_info.pat_char_cls = make_shared<PatternCharClass>(subpattern);
+    }
+
+    /**
      * Copy constructor for RegexPatternPortion.
      * @param val The original match object.
      */
@@ -305,6 +323,12 @@ namespace cpp_grep{
     }
     // endregion
 
+    // region RegexPatternPortion: Getters (pattern char. class)
+    vector<RegexPatternPortion> RegexPatternPortion::get_subpattern() const{
+        return portion_info.pat_char_cls->subpattern;
+    }
+    // endregion
+
     vector<RegexPatternPortion> extract_patterns(const string& input){
         string temp = input;
         vector<RegexPatternPortion> ret;
@@ -361,18 +385,42 @@ namespace cpp_grep{
                 idx++;
                 temp.erase(range_start, range_end);
             }
-            else if (temp.starts_with('(') and temp.contains('|') and temp.contains(')')){
-                string::size_type sep_position = temp.find('|'), paren_position = temp.find(')');
-                if (paren_position < sep_position){
-                    throw invalid_argument("Missing parenthesis to close 'or' group");
+            else if (temp.starts_with('(') and temp.contains(')')){
+                // Pattern group
+                // Look for the end of the current pattern.
+                ubyte depth = 1;
+                uint index = 0;
+                while (depth > 0){
+                    index++;
+                    if (index >= temp.size()){
+                        throw invalid_argument("Missing right parenthesis to close the current expression group");
+                    }
+                    if (temp[index] == '('){
+                        depth++;
+                    }
+                    else if (temp[index] == ')'){
+                        depth--;
+                    }
                 }
-                string subpattern_a = temp.substr(1, sep_position - 1);
-                string subpattern_b = temp.substr(sep_position + 1, paren_position - sep_position - 1);
-                vector<RegexPatternPortion> subpattern1 = extract_patterns(subpattern_a);
-                vector<RegexPatternPortion> subpattern2 = extract_patterns(subpattern_b);
-                ret.emplace_back(subpattern1, subpattern2);
+                auto extracted_subpattern_string = temp.substr(1, index - 1);
+                cerr << "Extracted subpattern: " << extracted_subpattern_string << "\n";
+                auto extracted_subpattern = extract_patterns(extracted_subpattern_string);
+                ret.emplace_back(extracted_subpattern);
                 idx++;
-                temp.erase(0, paren_position + 1);
+                temp.erase(0, index + 1);
+                cerr << "After erasure: " << temp << "\n";
+            }
+            else if (temp.contains('|') && !temp.contains('(')){
+                string::size_type sep_pos = temp.find('|');
+                string subpattern_a = temp.substr(0, sep_pos);
+                string subpattern_b = temp.substr(sep_pos + 1);
+                cerr << "Subpattern A: " << subpattern_a << "\n";
+                cerr << "Subpattern B: " << subpattern_b << "\n";
+                auto extracted_spa = extract_patterns(subpattern_a);
+                auto extracted_spb = extract_patterns(subpattern_b);
+                ret.emplace_back(extracted_spa, extracted_spb);
+                idx++;
+                temp.erase(0, subpattern_a.size() + subpattern_b.size() + 1);
             }
             else if (temp[1] == '+'){
                 // One or more

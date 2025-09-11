@@ -50,6 +50,7 @@ namespace cpp_grep{
         ANY_LEAST_ONE,  // At least one unspecified character.
         ANY_MOST_ONE,   // At most one unspecified character.
         OR,             // Must validate either one of two patterns.
+        PATTERN,        // The subpattern must be matched at the given location.
     };
 
     namespace priv{
@@ -72,15 +73,17 @@ namespace cpp_grep{
         };
     };
 
-    // Forward declaration here because pattern objects need to be stored in this struct (vectors),
+    // Forward declaration here because pattern objects need to be stored in these structs (vectors),
     // so RegexPatternPortion has to be declared.
     struct OrCharClass;
+    struct PatternCharClass;
     // endregion
 
     union URegexPatternPortionInfo{
-        LiteralCharClass literal_cls{};  // NOLINT
+        LiteralCharClass literal_cls{};
         GroupCharClass grp_char_cls;
         shared_ptr<OrCharClass> or_char_cls;
+        shared_ptr<PatternCharClass> pat_char_cls;
 
         // Using placement new so GroupCharClass can still be used
         // inside despite its non-trivial constructor.
@@ -133,6 +136,7 @@ namespace cpp_grep{
             RegexPatternPortion(const string& char_grp, bool positive_check, uint start);
             RegexPatternPortion(const string& char_grp, bool positive_check, uint start, uint end);
             RegexPatternPortion(const vector<RegexPatternPortion>& subpattern1, const vector<RegexPatternPortion>& subpattern2);
+            RegexPatternPortion(const vector<RegexPatternPortion>& subpattern);
 
             RegexPatternPortion(const RegexPatternPortion& val);
 
@@ -152,6 +156,9 @@ namespace cpp_grep{
             [[nodiscard]] vector<RegexPatternPortion> get_subpattern1() const;
             [[nodiscard]] vector<RegexPatternPortion> get_subpattern2() const;
 
+            // GETTERS (PATTERN CHAR. CLASS)
+            [[nodiscard]] vector<RegexPatternPortion> get_subpattern() const;
+
     };
 
     struct OrCharClass{
@@ -159,6 +166,13 @@ namespace cpp_grep{
 
         OrCharClass(){};
         OrCharClass(const vector<RegexPatternPortion>& subpattern1, const vector<RegexPatternPortion>& subpattern2);
+    };
+
+    struct PatternCharClass{
+        vector<RegexPatternPortion> subpattern{};
+
+        PatternCharClass(){}
+        PatternCharClass(const vector<RegexPatternPortion>& subpattern);
     };
 
     vector<RegexPatternPortion> extract_patterns(const string& input);
