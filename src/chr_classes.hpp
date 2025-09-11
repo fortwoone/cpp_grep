@@ -40,6 +40,7 @@ namespace cpp_grep{
         CHAR_GROUP,     // Any character in a given group.
         START_ANCHOR,   // The string must start with the given expression afterwards.
         END_ANCHOR,     // The string must end with the given expression (specified before).
+        ONE_OR_MORE,
     };
 
     namespace priv{
@@ -64,7 +65,7 @@ namespace cpp_grep{
     // endregion
 
     union URegexPatternPortionInfo{
-        LiteralCharClass literal_cls;
+        LiteralCharClass literal_cls;  // NOLINT
         GroupCharClass grp_char_cls;
 
         // Using placement new so GroupCharClass can still be used
@@ -109,6 +110,7 @@ namespace cpp_grep{
             // CTORS
 
             RegexPatternPortion(char literal);
+            RegexPatternPortion(char literal, bool one_or_more);
             RegexPatternPortion(char literal, uint idx);
             RegexPatternPortion(ECharClass char_cls);
             RegexPatternPortion(ECharClass char_cls, uint start);

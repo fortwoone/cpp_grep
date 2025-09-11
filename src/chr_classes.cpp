@@ -36,6 +36,19 @@ namespace cpp_grep{
     }
 
     /**
+     * Initialise a literal (or one-or-more) regex pattern portion object.
+     * The span's start will be set to 0 and its end to 1.
+     * @param literal The literal character to check for.
+     * @param one_or_more Set the object to "one-or-more" if this is true.
+     */
+    RegexPatternPortion::RegexPatternPortion(char literal, bool one_or_more){
+        char_cls = one_or_more ? ECharClass::ONE_OR_MORE : ECharClass::LITERAL;
+        start = 0;
+        end = 1;
+        portion_info.literal_cls.literal = literal;
+    }
+
+    /**
      * Initialise a literal regex pattern portion object.
      * The span's start will be set to idx and its end to idx + 1.
      * @param literal The literal character to check for.
@@ -200,7 +213,7 @@ namespace cpp_grep{
 
     // region RegexPatternPortion: Getters (literal char. class)
     char RegexPatternPortion::get_literal() const{
-        if (char_cls != ECharClass::LITERAL){
+        if (char_cls != ECharClass::LITERAL && char_cls != ECharClass::ONE_OR_MORE){
             // This should NEVER happen, but in case it does...
             throw logic_error("Cannot retrieve a literal from a non-literal pattern portion object");
         }
@@ -276,6 +289,14 @@ namespace cpp_grep{
                 );
                 idx++;
                 temp.erase(range_start, range_end);
+            }
+            else if (temp[1] == '+'){
+                ret.emplace_back(
+                    temp[0],
+                    true
+                );
+                idx++;
+                temp.erase(0, 2);
             }
             else{
                 ret.emplace_back(
