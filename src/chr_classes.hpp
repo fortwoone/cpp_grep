@@ -40,7 +40,8 @@ namespace cpp_grep{
         CHAR_GROUP,     // Any character in a given group.
         START_ANCHOR,   // The string must start with the given expression afterwards.
         END_ANCHOR,     // The string must end with the given expression (specified before).
-        ONE_OR_MORE,
+        ONE_OR_MORE,    // The string must contain one or more consecutive occurrences of the literal.
+        ZERO_OR_ONE,    // The string must contain at most one occurrence of this literal at the current location.
     };
 
     namespace priv{
@@ -57,7 +58,7 @@ namespace cpp_grep{
 
     struct GroupCharClass{
         string char_group;       // The character group.
-        bool positive_match;    // Positive/negative character group.
+        bool positive_match{false};    // Positive/negative character group.
         GroupCharClass(){
             char_group = {};  // Initialise the field if using this constructor.
         };
@@ -65,7 +66,7 @@ namespace cpp_grep{
     // endregion
 
     union URegexPatternPortionInfo{
-        LiteralCharClass literal_cls;  // NOLINT
+        LiteralCharClass literal_cls{};  // NOLINT
         GroupCharClass grp_char_cls;
 
         // Using placement new so GroupCharClass can still be used
@@ -109,10 +110,10 @@ namespace cpp_grep{
         public:
             // CTORS
 
-            RegexPatternPortion(char literal);
-            RegexPatternPortion(char literal, bool one_or_more);
+            explicit RegexPatternPortion(char literal);
+            RegexPatternPortion(char literal, ubyte one_or_more);
             RegexPatternPortion(char literal, uint idx);
-            RegexPatternPortion(ECharClass char_cls);
+            explicit RegexPatternPortion(ECharClass char_cls);
             RegexPatternPortion(ECharClass char_cls, uint start);
             RegexPatternPortion(ECharClass char_cls, uint start, uint end);
             RegexPatternPortion(const string& char_grp, bool positive_check);

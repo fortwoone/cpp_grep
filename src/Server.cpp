@@ -98,6 +98,22 @@ namespace cpp_grep{
             }
             return match_here(input_line.substr(input_index + count), portions, 0, check_pattern_idx);
         }
+        if (portion.get_char_cls() == ECharClass::ZERO_OR_ONE){
+            // Handle matches separately.
+            uint count = 0;
+            while (input_line[input_index + count] == portion.get_literal()){
+                count++;
+                if (count > 1){
+                    // More than one occurrence? No match.
+                    return false;
+                }
+            }
+            check_pattern_idx++;
+            if (portions.size() <= check_pattern_idx){
+                return true;
+            }
+            return match_here(input_line.substr(input_index + count), portions, 0, check_pattern_idx);
+        }
 
         if (!match_char(input_line[input_index], portions, check_pattern_idx)){
             return false;

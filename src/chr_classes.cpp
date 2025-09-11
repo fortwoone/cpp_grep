@@ -16,6 +16,9 @@ namespace cpp_grep{
             ECharClass::END_ANCHOR,
         };
 
+        constexpr ubyte FLG_ONE_OR_MORE = 1;
+        constexpr ubyte FLG_ZERO_OR_ONE = 2;
+
         bool is_nonstruct_chr_class(ECharClass cls){
             return NONSTRUCT_CHRCLASSES.contains(cls);
         }
@@ -41,8 +44,18 @@ namespace cpp_grep{
      * @param literal The literal character to check for.
      * @param one_or_more Set the object to "one-or-more" if this is true.
      */
-    RegexPatternPortion::RegexPatternPortion(char literal, bool one_or_more){
-        char_cls = one_or_more ? ECharClass::ONE_OR_MORE : ECharClass::LITERAL;
+    RegexPatternPortion::RegexPatternPortion(char literal, ubyte one_or_more){
+        switch (one_or_more){
+            case priv::FLG_ONE_OR_MORE:
+                char_cls = ECharClass::ONE_OR_MORE;
+                break;
+            case priv::FLG_ZERO_OR_ONE:
+                char_cls = ECharClass::ZERO_OR_ONE;
+                break;
+            default:
+                char_cls = ECharClass::LITERAL;
+                break;
+        }
         start = 0;
         end = 1;
         portion_info.literal_cls.literal = literal;
@@ -213,7 +226,7 @@ namespace cpp_grep{
 
     // region RegexPatternPortion: Getters (literal char. class)
     char RegexPatternPortion::get_literal() const{
-        if (char_cls != ECharClass::LITERAL && char_cls != ECharClass::ONE_OR_MORE){
+        if (char_cls != ECharClass::LITERAL && char_cls != ECharClass::ONE_OR_MORE && char_cls != ECharClass::ZERO_OR_ONE){
             // This should NEVER happen, but in case it does...
             throw logic_error("Cannot retrieve a literal from a non-literal pattern portion object");
         }
@@ -293,7 +306,15 @@ namespace cpp_grep{
             else if (temp[1] == '+'){
                 ret.emplace_back(
                     temp[0],
-                    true
+                    priv::FLG_ONE_OR_MORE
+                );
+                idx++;
+                temp.erase(0, 2);
+            }
+            else if (temp[1] == '?'){
+                ret.emplace_back(
+                    temp[0],
+                    priv::FLG_ZERO_OR_ONE
                 );
                 idx++;
                 temp.erase(0, 2);
