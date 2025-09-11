@@ -227,7 +227,7 @@ namespace cpp_grep{
 
         switch(char_cls){
             case LITERAL:
-                return input_val[start] == portion_info.literal_cls.literal;
+                return input_val.contains(portion_info.literal_cls.literal);
             case DIGIT:
                 return priv::is_digit(input_val[start]);
             case WORD:
