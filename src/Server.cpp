@@ -16,7 +16,7 @@ using std::unitbuf;
 
 namespace cpp_grep{
 
-    bool match_char(char input, const vector<RegexPatternPortion>& portions, uint& pattern_index){
+    bool match_char(char input, const vector<RegexPatternPortion>& portions, uint& pattern_index, uint input_idx){
         if (pattern_index >= portions.size()){
             return false;
         }
@@ -38,9 +38,11 @@ namespace cpp_grep{
                 if (portion.is_positive_grp()){
                     return portion.get_char_grp().contains(input);
                 }
-                else{
+                else {
                     return !portion.get_char_grp().contains(input);
                 }
+            case START_ANCHOR:
+                return (input_idx == 0);
         }
         return false;
     }
@@ -56,7 +58,7 @@ namespace cpp_grep{
 
         uint check_pattern_idx = pattern_index;
 
-        if (!match_char(input_line[input_index], portions, check_pattern_idx)){
+        if (!match_char(input_line[input_index], portions, check_pattern_idx, input_index)){
             return false;
         }
 

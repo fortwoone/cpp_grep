@@ -9,6 +9,7 @@
 #include <new>
 #include <stdexcept>
 #include <string>
+#include <unordered_set>
 #include <vector>
 
 #include "chr_class_handlers.hpp"
@@ -21,6 +22,7 @@ namespace cpp_grep{
     using std::logic_error;
     using std::memcpy;
     using std::string;
+    using std::unordered_set;
     using std::vector;
 
     namespace priv{
@@ -36,6 +38,7 @@ namespace cpp_grep{
         DIGIT,          // Any digit character at this position.
         WORD,           // Any word character at this position.
         CHAR_GROUP,     // Any character in a given group.
+        START_ANCHOR,   // The string must start with the given expression afterwards.
     };
 
     namespace priv{
