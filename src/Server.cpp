@@ -185,6 +185,13 @@ namespace cpp_grep{
             // Positive character group otherwise.
             return match_positive_character_grp(input_line, stripped_pattern);
         }
+        else if (pattern.starts_with('(') && pattern.contains('|') && pattern.ends_with(')')){
+            // "Either-or"
+            string::size_type sep_position = pattern.find('|');
+            string pattern_a = pattern.substr(1, sep_position - 1);
+            string pattern_b = pattern.substr(sep_position + 1, pattern.size() - 1);
+            return match_pattern(input_line, pattern_a) || match_pattern(input_line, pattern_b);
+        }
         else if (pattern.length() > 1){
             vector<RegexPatternPortion> portions = extract_patterns(pattern);
             for (size_t start = 0; start <= input_line.size(); ++start){
