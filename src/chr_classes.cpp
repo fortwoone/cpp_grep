@@ -299,6 +299,13 @@ namespace cpp_grep{
                 temp.erase(0, 2);
             }
             else{
+                auto last_portion = ret.back();
+                if (last_portion.get_char_cls() == ECharClass::ONE_OR_MORE && last_portion.get_literal() == temp[0]){
+                    // Merge the literal object into the previous portion.
+                    idx++;
+                    temp.erase(0, 1);
+                    continue;
+                }
                 ret.emplace_back(
                     temp[0]
                 );
