@@ -46,7 +46,7 @@ namespace cpp_grep{
                 [input_line](RegexPatternPortion& val){
                     return val(input_line);
                 }
-            )
+            );
         }
         else {
             throw runtime_error("Unhandled pattern " + pattern);
