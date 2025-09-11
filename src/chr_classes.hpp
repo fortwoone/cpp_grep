@@ -43,6 +43,8 @@ namespace cpp_grep{
         END_ANCHOR,     // The string must end with the given expression (specified before).
         ONE_OR_MORE,    // The string must contain one or more consecutive occurrences of the literal.
         ZERO_OR_ONE,    // The string must contain at most one occurrence of this literal at the current location.
+        ANY_LEAST_ONE,  // At least one unspecified character.
+        ANY_MOST_ONE,   // At most one unspecified character.
     };
 
     namespace priv{

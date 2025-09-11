@@ -76,46 +76,76 @@ namespace cpp_grep{
 
         uint check_pattern_idx = pattern_index;
 
-        if (portion.get_char_cls() == ECharClass::ONE_OR_MORE){
-            // Handle matches separately.
-            uint count = 0;
-            while (input_line[input_index + count] == portion.get_literal()){
-                count++;
-            }
-            if (!count) {
-                // Fail if none were found.
-                return false;
-            }
-            check_pattern_idx++;
-            if (portions.size() <= check_pattern_idx){
-                return true;
-            }
-            else if (
-                portions.at(check_pattern_idx).get_char_cls() == ECharClass::LITERAL
-                && portions.at(check_pattern_idx).get_literal() == portion.get_literal()
-            ){
-                // Edge case: if a literal check is added with an identical literal
-                // to the one used in this pattern portion, move the subindex backwards by one
-                // so the literal check can still count as true.
-                count--;
-            }
-            return match_here(input_line.substr(input_index + count), portions, 0, check_pattern_idx);
-        }
-        if (portion.get_char_cls() == ECharClass::ZERO_OR_ONE){
-            // Handle matches separately.
-            uint count = 0;
-            while (input_line[input_index + count] == portion.get_literal()){
-                count++;
-                if (count > 1){
-                    // More than one occurrence? No match.
+        switch (portion.get_char_cls()){
+            case ECharClass::ONE_OR_MORE:
+            {
+                // Handle matches separately.
+                uint count = 0;
+                while (input_line[input_index + count] == portion.get_literal()){
+                    count++;
+                }
+                if (!count) {
+                    // Fail if none were found.
                     return false;
                 }
+                check_pattern_idx++;
+                if (portions.size() <= check_pattern_idx){
+                    return true;
+                }
+                else if (
+                    portions.at(check_pattern_idx).get_char_cls() == ECharClass::LITERAL
+                    && portions.at(check_pattern_idx).get_literal() == portion.get_literal()
+                ){
+                    // Edge case: if a literal check is added with an identical literal
+                    // to the one used in this pattern portion, move the subindex backwards by one
+                    // so the literal check can still count as true.
+                    count--;
+                }
+                return match_here(input_line.substr(input_index + count), portions, 0, check_pattern_idx);
             }
-            check_pattern_idx++;
-            if (portions.size() <= check_pattern_idx){
-                return true;
+            case ECharClass::ZERO_OR_ONE:
+            {
+                // Handle matches separately.
+                uint count = 0;
+                while (input_line[input_index + count] == portion.get_literal()){
+                    count++;
+                    if (count > 1){
+                        // More than one occurrence? No match.
+                        return false;
+                    }
+                }
+                check_pattern_idx++;
+                if (portions.size() <= check_pattern_idx){
+                    return true;
+                }
+                return match_here(input_line.substr(input_index + count), portions, 0, check_pattern_idx);
             }
-            return match_here(input_line.substr(input_index + count), portions, 0, check_pattern_idx);
+            case ECharClass::ANY_LEAST_ONE:
+            {
+                if (pattern_index + 1 >= portions.size()){
+                    return true;
+                }
+                else if (
+                    portions.at(pattern_index + 1).get_char_cls() == ECharClass::LITERAL
+                ){
+                    char next_literal = portions.at(pattern_index + 1).get_literal();
+                    uint count = 0;
+                    while (input_line[input_index + count] != next_literal){
+                        count++;
+                    }
+                    if (!count){
+                        return false;
+                    }
+                    check_pattern_idx++;
+                    return match_here(input_line.substr(input_index + count), portions, 0, check_pattern_idx);
+                }
+                else{
+                    check_pattern_idx++;
+                    return match_here(input_line.substr(input_index + 1), portions, 0, check_pattern_idx);
+                }
+            }
+            default:
+                break;
         }
 
         if (!match_char(input_line[input_index], portions, check_pattern_idx)){

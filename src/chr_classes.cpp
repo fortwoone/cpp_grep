@@ -57,9 +57,17 @@ namespace cpp_grep{
     RegexPatternPortion::RegexPatternPortion(char literal, ubyte one_or_more){
         switch (one_or_more){
             case priv::FLG_ONE_OR_MORE:
+                if (literal == '.'){
+                    char_cls = ECharClass::ANY_LEAST_ONE;
+                    break;
+                }
                 char_cls = ECharClass::ONE_OR_MORE;
                 break;
             case priv::FLG_ZERO_OR_ONE:
+                if (literal == '.'){
+                    char_cls = ECharClass::ANY_MOST_ONE;
+                    break;
+                }
                 char_cls = ECharClass::ZERO_OR_ONE;
                 break;
             default:
