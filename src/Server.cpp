@@ -42,6 +42,7 @@ namespace cpp_grep{
                     return !portion.get_char_grp().contains(input);
                 }
         }
+        return false;
     }
 
     bool match_here(const string& input_line, const vector<RegexPatternPortion>& portions, uint input_index, uint pattern_index){
