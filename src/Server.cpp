@@ -153,28 +153,27 @@ namespace cpp_grep{
             {
                 const auto& pattern1 = portion.get_subpattern1();
                 const auto& pattern2 = portion.get_subpattern2();
-                if (!match_here(input_line, pattern1, input_index, 0) && !match_here(input_line, pattern2, input_index, 0)){
-                    return false;
+                if (processed != nullptr){
+                    (*processed)++;
                 }
-                check_pattern_idx++;
-                return match_here(input_line.substr(input_index + 1), portions, 0, check_pattern_idx, processed);
+                return match_here(input_line, pattern1, input_index, 0) || match_here(input_line, pattern2, input_index, 0);
             }
             case ECharClass::PATTERN:
             {
                 uint count = 0;
-                if (!match_here(input_line.substr(input_index + 1), portion.get_subpattern(), 0, 0, &count)){
+                if (!match_here(input_line.substr(input_index), portion.get_subpattern(), 0, 0, &count)){
                     return false;
                 }
                 check_pattern_idx++;
                 input_index += count - 1;
-                break;
+                return match_here(input_line.substr(input_index + 1), portions, 0, check_pattern_idx);
             }
             case ECharClass::PATTERN_MOST_ONE:
             {
                 uint count = 0;
                 uint processed_chrs = 0;
                 uint processed_tot = 0;
-                while (match_here(input_line.substr(input_index + 1 + processed_tot), portion.get_subpattern(), 0, 0, &processed_chrs)){
+                while (match_here(input_line.substr(input_index + processed_tot), portion.get_subpattern(), 0, 0, &processed_chrs)){
                     count++;
                     processed_tot += processed_chrs;
                     processed_chrs = 0;
@@ -189,14 +188,14 @@ namespace cpp_grep{
                     (*processed) += processed_tot;
                 }
                 check_pattern_idx++;
-                return match_here(input_line.substr(input_index + 1 + processed_tot), portions, 0, check_pattern_idx, processed);
+                return match_here(input_line.substr(input_index + processed_tot), portions, 0, check_pattern_idx, processed);
             }
             case ECharClass::PATTERN_LEAST_ONE:
             {
                 uint count = 0;
                 uint processed_chrs = 0;
                 uint processed_tot = 0;
-                while (match_here(input_line.substr(input_index + 1 + processed_tot), portion.get_subpattern(), 0, 0, &processed_chrs)){
+                while (match_here(input_line.substr(input_index + processed_tot), portion.get_subpattern(), 0, 0, &processed_chrs)){
                     count++;
                     processed_tot += processed_chrs;
                     processed_chrs = 0;

@@ -138,7 +138,7 @@ namespace cpp_grep{
             RegexPatternPortion(const string& char_grp, bool positive_check, uint start);
             RegexPatternPortion(const string& char_grp, bool positive_check, uint start, uint end);
             RegexPatternPortion(const vector<RegexPatternPortion>& subpattern1, const vector<RegexPatternPortion>& subpattern2);
-            RegexPatternPortion(const vector<RegexPatternPortion>& subpattern);
+            explicit RegexPatternPortion(const vector<RegexPatternPortion>& subpattern);
             RegexPatternPortion(const vector<RegexPatternPortion>& subpattern, ubyte flg);
 
             RegexPatternPortion(const RegexPatternPortion& val);
