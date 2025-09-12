@@ -156,7 +156,9 @@ namespace cpp_grep{
                 if (processed != nullptr){
                     (*processed)++;
                 }
-                return match_here(input_line, pattern1, input_index, 0) || match_here(input_line, pattern2, input_index, 0);
+                uint count_a = 0;
+                uint count_b = 0;
+                return match_here(input_line, pattern1, input_index, 0, &count_a) || match_here(input_line, pattern2, input_index, 0, &count_b);
             }
             case ECharClass::PATTERN:
             {
@@ -228,7 +230,8 @@ namespace cpp_grep{
             input_line,
             portions,
             input_index + 1,
-            check_pattern_idx
+            check_pattern_idx,
+            processed
         );
     }
 
