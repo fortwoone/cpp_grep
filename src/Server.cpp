@@ -159,8 +159,6 @@ namespace cpp_grep{
                 check_pattern_idx++;
                 return match_here(input_line.substr(input_index + 1), portions, 0, check_pattern_idx, processed);
             }
-            default:
-                break;
             case ECharClass::PATTERN:
             {
                 uint count = 0;
@@ -169,7 +167,54 @@ namespace cpp_grep{
                 }
                 check_pattern_idx++;
                 input_index += count - 1;
+                break;
             }
+            case ECharClass::PATTERN_MOST_ONE:
+            {
+                uint count = 0;
+                uint processed_chrs = 0;
+                uint processed_tot = 0;
+                while (match_here(input_line.substr(input_index + 1 + processed_tot), portion.get_subpattern(), 0, 0, &processed_chrs)){
+                    count++;
+                    processed_tot += processed_chrs;
+                    processed_chrs = 0;
+                }
+                if (count > 1){
+                    return false;
+                }
+                if (processed_chrs > 0 && processed_tot == 0){
+                    processed_tot += processed_chrs;
+                }
+                if (processed != nullptr){
+                    (*processed) += processed_tot;
+                }
+                check_pattern_idx++;
+                return match_here(input_line.substr(input_index + 1 + processed_tot), portions, 0, check_pattern_idx, processed);
+            }
+            case ECharClass::PATTERN_LEAST_ONE:
+            {
+                uint count = 0;
+                uint processed_chrs = 0;
+                uint processed_tot = 0;
+                while (match_here(input_line.substr(input_index + 1 + processed_tot), portion.get_subpattern(), 0, 0, &processed_chrs)){
+                    count++;
+                    processed_tot += processed_chrs;
+                    processed_chrs = 0;
+                }
+                if (count < 1){
+                    return false;
+                }
+                if (processed_chrs > 0 && processed_tot == 0){
+                    processed_tot += processed_chrs;
+                }
+                if (processed != nullptr){
+                    (*processed) += processed_tot;
+                }
+                check_pattern_idx++;
+                return match_here(input_line.substr(input_index + 1 + processed_tot), portions, 0, check_pattern_idx, processed);
+            }
+            default:
+                break;
         }
 
         if (!match_char(input_line[input_index], portions, check_pattern_idx)){

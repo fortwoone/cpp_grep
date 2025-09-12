@@ -246,6 +246,27 @@ namespace cpp_grep{
         portion_info.pat_char_cls = make_shared<PatternCharClass>(subpattern);
     }
 
+    RegexPatternPortion::RegexPatternPortion(const vector<RegexPatternPortion>& subpattern, ubyte flg){
+        if (subpattern.empty()){
+            throw invalid_argument("The subpattern cannot be empty");
+        }
+
+        switch (flg){
+            case priv::FLG_ZERO_OR_ONE:
+                char_cls = ECharClass::PATTERN_MOST_ONE;
+                break;
+            case priv::FLG_ONE_OR_MORE:
+                char_cls = ECharClass::PATTERN_LEAST_ONE;
+                break;
+            default:
+                char_cls = ECharClass::PATTERN;
+                break;
+        }
+        start = 0;
+        end = 1;
+        portion_info.pat_char_cls = make_shared<PatternCharClass>(subpattern);
+    }
+
     /**
      * Copy constructor for RegexPatternPortion.
      * @param val The original match object.
@@ -325,6 +346,9 @@ namespace cpp_grep{
 
     // region RegexPatternPortion: Getters (pattern char. class)
     vector<RegexPatternPortion> RegexPatternPortion::get_subpattern() const{
+        if (char_cls != ECharClass::PATTERN && char_cls != ECharClass::PATTERN_LEAST_ONE && char_cls != ECharClass::PATTERN_MOST_ONE){
+            throw logic_error("Cannot retrieve a subpattern from a non-subpattern portion object");
+        }
         return portion_info.pat_char_cls->subpattern;
     }
     // endregion
@@ -402,12 +426,33 @@ namespace cpp_grep{
                         depth--;
                     }
                 }
+                ubyte flg;
+                if (index + 1 < temp.size()){
+                    char next_chr = temp[index + 1];
+                    switch (next_chr){
+                        case '+':
+                            flg = priv::FLG_ONE_OR_MORE;
+                            break;
+                        case '?':
+                            flg = priv::FLG_ZERO_OR_ONE;
+                            break;
+                        default:
+                            flg = 0;
+                            break;
+                    }
+                }
+                else{
+                    flg = 0;
+                }
                 auto extracted_subpattern_string = temp.substr(1, index - 1);
                 cerr << "Extracted subpattern: " << extracted_subpattern_string << "\n";
                 auto extracted_subpattern = extract_patterns(extracted_subpattern_string);
-                ret.emplace_back(extracted_subpattern);
+                ret.emplace_back(extracted_subpattern, flg);
                 idx++;
-                temp.erase(0, index + 1);
+                temp.erase(
+                    0,
+                    index + 1 + (flg > 0 ? 1 : 0)
+                );
                 cerr << "After erasure: " << temp << "\n";
             }
             else if (temp.contains('|') && !temp.contains('(')){

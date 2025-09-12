@@ -38,19 +38,21 @@ namespace cpp_grep{
 
     // An enum representing all supported character classes.
     enum class ECharClass: ubyte{
-        ANY,            // Match any character at that position.
-        LITERAL,        // Any literal character (exact match).
-        DIGIT,          // Any digit character at this position.
-        WORD,           // Any word character at this position.
-        CHAR_GROUP,     // Any character in a given group.
-        START_ANCHOR,   // The string must start with the given expression afterwards.
-        END_ANCHOR,     // The string must end with the given expression (specified before).
-        ONE_OR_MORE,    // The string must contain one or more consecutive occurrences of the literal.
-        ZERO_OR_ONE,    // The string must contain at most one occurrence of this literal at the current location.
-        ANY_LEAST_ONE,  // At least one unspecified character.
-        ANY_MOST_ONE,   // At most one unspecified character.
-        OR,             // Must validate either one of two patterns.
-        PATTERN,        // The subpattern must be matched at the given location.
+        ANY,                // Match any character at that position.
+        LITERAL,            // Any literal character (exact match).
+        DIGIT,              // Any digit character at this position.
+        WORD,               // Any word character at this position.
+        CHAR_GROUP,         // Any character in a given group.
+        START_ANCHOR,       // The string must start with the given expression afterwards.
+        END_ANCHOR,         // The string must end with the given expression (specified before).
+        ONE_OR_MORE,        // The string must contain one or more consecutive occurrences of the literal.
+        ZERO_OR_ONE,        // The string must contain at most one occurrence of this literal at the current location.
+        ANY_LEAST_ONE,      // At least one unspecified character.
+        ANY_MOST_ONE,       // At most one unspecified character.
+        OR,                 // Must validate either one of two patterns.
+        PATTERN,            // The subpattern must be matched at the given location.
+        PATTERN_LEAST_ONE,  // The given subpattern must be matched at least once consecutively.
+        PATTERN_MOST_ONE,   // The given subpattern must match at most once.
     };
 
     namespace priv{
@@ -137,6 +139,7 @@ namespace cpp_grep{
             RegexPatternPortion(const string& char_grp, bool positive_check, uint start, uint end);
             RegexPatternPortion(const vector<RegexPatternPortion>& subpattern1, const vector<RegexPatternPortion>& subpattern2);
             RegexPatternPortion(const vector<RegexPatternPortion>& subpattern);
+            RegexPatternPortion(const vector<RegexPatternPortion>& subpattern, ubyte flg);
 
             RegexPatternPortion(const RegexPatternPortion& val);
 
@@ -164,15 +167,15 @@ namespace cpp_grep{
     struct OrCharClass{
         vector<RegexPatternPortion> subpattern1{}, subpattern2{};
 
-        OrCharClass(){};
+        OrCharClass() = default;
         OrCharClass(const vector<RegexPatternPortion>& subpattern1, const vector<RegexPatternPortion>& subpattern2);
     };
 
     struct PatternCharClass{
         vector<RegexPatternPortion> subpattern{};
 
-        PatternCharClass(){}
-        PatternCharClass(const vector<RegexPatternPortion>& subpattern);
+        PatternCharClass() = default;
+        explicit PatternCharClass(const vector<RegexPatternPortion>& subpattern);
     };
 
     vector<RegexPatternPortion> extract_patterns(const string& input);
