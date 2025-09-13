@@ -523,6 +523,15 @@ namespace cpp_grep{
                     nb_chars.append(1, temp[count + 1]);
                     count++;
                 }
+
+                if (nb_chars.empty()){
+                    // Regular backslash instead.
+                    ret.emplace_back('\\');
+                    temp.erase(0, 1);
+                    idx++;
+                    continue;
+                }
+
                 uint nb = stoi(nb_chars);
                 if (backreferences.empty()){
                     throw out_of_range("There are no stored backreferences.");
