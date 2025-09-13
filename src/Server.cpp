@@ -11,12 +11,21 @@ using std::cin;
 using std::cout;
 using std::endl;
 using std::getline;
+using std::out_of_range;
 using std::runtime_error;
 using std::string;
 using std::unitbuf;
 using std::unreachable;
 
 namespace cpp_grep{
+    namespace priv{
+        unordered_set<ECharClass> END_SEARCH_IF_EMPTY_AND_LAST_PAT = {
+            ECharClass::ZERO_OR_ONE,
+            ECharClass::PATTERN_MOST_ONE,
+            ECharClass::ANY_MOST_ONE,
+            ECharClass::END_ANCHOR
+        };
+    }
 
     bool match_char(char input, const vector<RegexPatternPortion>& portions, uint& pattern_index){
         if (pattern_index >= portions.size()){
@@ -30,6 +39,8 @@ namespace cpp_grep{
                 pattern_index++;
                 return true;
             case LITERAL:
+                cerr << "Portion literal: " << portion.get_literal() << "\n";
+                cerr << "Input character: " << input << "\n";
                 pattern_index++;
                 return input == portion.get_literal();
             case DIGIT:
@@ -61,7 +72,7 @@ namespace cpp_grep{
         const auto& portion = portions.at(pattern_index);
 
         if (input_index >= input_line.size()){
-            return portion.get_char_cls() == ECharClass::END_ANCHOR;
+            return priv::END_SEARCH_IF_EMPTY_AND_LAST_PAT.contains(portion.get_char_cls());
         }
 
         if (portion.get_char_cls() == ECharClass::START_ANCHOR){
@@ -119,6 +130,9 @@ namespace cpp_grep{
                         return false;
                     }
                 }
+                if (processed != nullptr){
+                    (*processed) += count;
+                }
                 check_pattern_idx++;
                 if (portions.size() <= check_pattern_idx){
                     return true;
@@ -153,12 +167,24 @@ namespace cpp_grep{
             {
                 const auto& pattern1 = portion.get_subpattern1();
                 const auto& pattern2 = portion.get_subpattern2();
+                uint count_a = 0;
+                uint count_b = 0;
+                if (match_here(input_line, pattern1, input_index, 0, &count_a)){
+                    if (processed != nullptr){
+                        (*processed) += count_a;
+                    }
+                    return true;
+                }
+                if (match_here(input_line, pattern2, input_index, 0, &count_b)){
+                    if (processed != nullptr){
+                        (*processed) += count_b;
+                    }
+                    return true;
+                }
                 if (processed != nullptr){
                     (*processed)++;
                 }
-                uint count_a = 0;
-                uint count_b = 0;
-                return match_here(input_line, pattern1, input_index, 0, &count_a) || match_here(input_line, pattern2, input_index, 0, &count_b);
+                return false;
             }
             case ECharClass::PATTERN:
             {
@@ -167,8 +193,11 @@ namespace cpp_grep{
                     return false;
                 }
                 check_pattern_idx++;
+                if (processed != nullptr){
+                    (*processed) += count;
+                }
                 input_index += count - 1;
-                return match_here(input_line.substr(input_index + 1), portions, 0, check_pattern_idx);
+                return match_here(input_line.substr(input_index + 1), portions, 0, check_pattern_idx, processed);
             }
             case ECharClass::PATTERN_MOST_ONE:
             {
@@ -212,7 +241,18 @@ namespace cpp_grep{
                     (*processed) += processed_tot;
                 }
                 check_pattern_idx++;
-                return match_here(input_line.substr(input_index + 1 + processed_tot), portions, 0, check_pattern_idx, processed);
+                if (input_index + 1 + processed_tot < input_line.size()) {
+                    return match_here(
+                        input_line.substr(input_index + 1 + processed_tot),
+                        portions,
+                        0,
+                        check_pattern_idx,
+                        processed
+                    );
+                }
+                else{
+                    return match_here("", portions, 0, check_pattern_idx, processed);
+                }
             }
             default:
                 break;
