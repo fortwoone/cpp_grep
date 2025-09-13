@@ -457,6 +457,7 @@ namespace cpp_grep{
                         ECharClass::DIGIT,
                         idx
                     );
+                    temp.erase(0, priv::DIGIT_CLS_PATTERN.size());
                 }
                 else{
                     ubyte flg;
@@ -477,9 +478,9 @@ namespace cpp_grep{
                         ECharClass::DIGIT,
                         flg
                     );
+                    temp.erase(0, priv::DIGIT_CLS_PATTERN.size() + (flg > 0 ? 1 : 0));
                 }
                 idx++;
-                temp.erase(0, priv::DIGIT_CLS_PATTERN.size() + (nothing_after_this ? 0 : 1));
             }
             else if (temp.starts_with(priv::WORD_CLS_PATTERN)){
                 // Word class
@@ -489,6 +490,7 @@ namespace cpp_grep{
                         ECharClass::WORD,
                         idx
                     );
+                    temp.erase(0, priv::WORD_CLS_PATTERN.size());
                 }
                 else{
                     ubyte flg;
@@ -509,9 +511,9 @@ namespace cpp_grep{
                         ECharClass::WORD,
                         flg
                     );
+                    temp.erase(0, priv::WORD_CLS_PATTERN.size() + (flg > 0 ? 1 : 0));
                 }
                 idx++;
-                temp.erase(0, priv::WORD_CLS_PATTERN.size() + (nothing_after_this ? 0 : 1));
             }
             else if (temp.starts_with('\\')){
                 // Backreferences
