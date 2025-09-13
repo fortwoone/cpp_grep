@@ -436,8 +436,7 @@ namespace cpp_grep{
             }
             case ECharClass::BACKREFERENCE:
             {
-                // Subtracting 1 because grep's backref indexes start at 1 instead of 0.
-                ubyte backref_index = portion.get_backref_index() - 1;
+                ubyte backref_index = portion.get_backref_index();
                 const auto& txt = backref_texts.at(backref_index);
 
                 if (input_line.substr(input_index, txt.size()) != txt){
