@@ -116,6 +116,49 @@ namespace cpp_grep{
     }
 
     /**
+     * Initialise a non-detailed regex pattern portion object with no special position (digit or word).
+     * Match behaviour changes based on flg.
+     * @param char_cls The character class to select.
+     * @param flg 0 for none, 1 for "one or more", 2 for "zero or one".
+     */
+    RegexPatternPortion::RegexPatternPortion(ECharClass char_cls, ubyte flg){
+        if (char_cls != ECharClass::DIGIT && char_cls != ECharClass::WORD){
+            throw invalid_argument("Cannot set char. class to this value using this constructor: additional info is required.");
+        }
+
+        if (char_cls == ECharClass::DIGIT){
+            switch (flg){
+                case priv::FLG_ONE_OR_MORE:
+                    this->char_cls = ECharClass::DIGIT_LEAST_ONE;
+                    break;
+                case priv::FLG_ZERO_OR_ONE:
+                    this->char_cls = ECharClass::DIGIT_MOST_ONE;
+                    break;
+                default:
+                    this->char_cls = char_cls;
+                    break;
+            }
+        }
+        else{
+            switch (flg) {
+                case priv::FLG_ONE_OR_MORE:
+                    this->char_cls = ECharClass::WORD_LEAST_ONE;
+                    break;
+                case priv::FLG_ZERO_OR_ONE:
+                    this->char_cls = ECharClass::WORD_MOST_ONE;
+                    break;
+                default:
+                    this->char_cls = char_cls;
+                    break;
+            }
+        }
+
+        start = 0;
+        end = 1;
+        cls_info = nullptr;
+    }
+
+    /**
      * Initialise a non-detailed regex pattern portion object (digit, word or start/end anchor).
      * The span's start will be set to start and its end to start + 1.
      * @param char_cls The character class to select.
@@ -408,21 +451,67 @@ namespace cpp_grep{
             }
             else if (temp.starts_with(priv::DIGIT_CLS_PATTERN)){
                 // Digit class
-                ret.emplace_back(
-                    ECharClass::DIGIT,
-                    idx
-                );
+                bool nothing_after_this = (temp.size() < 3);
+                if (nothing_after_this){
+                    ret.emplace_back(
+                        ECharClass::DIGIT,
+                        idx
+                    );
+                }
+                else{
+                    ubyte flg;
+                    char following_chr = temp.at(2);
+                    switch (following_chr){
+                        case '+':
+                            flg = priv::FLG_ONE_OR_MORE;
+                            break;
+                        case '?':
+                            flg = priv::FLG_ZERO_OR_ONE;
+                            break;
+                        default:
+                            flg = 0;
+                            break;
+                    }
+
+                    ret.emplace_back(
+                        ECharClass::DIGIT,
+                        flg
+                    );
+                }
                 idx++;
-                temp.erase(0, priv::DIGIT_CLS_PATTERN.size());
+                temp.erase(0, priv::DIGIT_CLS_PATTERN.size() + (nothing_after_this ? 0 : 1));
             }
             else if (temp.starts_with(priv::WORD_CLS_PATTERN)){
                 // Word class
-                ret.emplace_back(
-                    ECharClass::WORD,
-                    idx
-                );
+                bool nothing_after_this = (temp.size() < 3);
+                if (nothing_after_this){
+                    ret.emplace_back(
+                        ECharClass::WORD,
+                        idx
+                    );
+                }
+                else{
+                    ubyte flg;
+                    char following_chr = temp.at(2);
+                    switch (following_chr){
+                        case '+':
+                            flg = priv::FLG_ONE_OR_MORE;
+                            break;
+                        case '?':
+                            flg = priv::FLG_ZERO_OR_ONE;
+                            break;
+                        default:
+                            flg = 0;
+                            break;
+                    }
+
+                    ret.emplace_back(
+                        ECharClass::WORD,
+                        flg
+                    );
+                }
                 idx++;
-                temp.erase(0, priv::WORD_CLS_PATTERN.size());
+                temp.erase(0, priv::WORD_CLS_PATTERN.size() + (nothing_after_this ? 0 : 1));
             }
             else if (temp.starts_with('\\')){
                 // Backreferences

@@ -44,6 +44,10 @@ namespace cpp_grep{
         LITERAL,                // Any literal character (exact match).
         DIGIT,                  // Any digit character at this position.
         WORD,                   // Any word character at this position.
+        DIGIT_LEAST_ONE,        // At least one consecutive digit character should be at this position.
+        DIGIT_MOST_ONE,         // At most one digit character should be at this position.
+        WORD_LEAST_ONE,         // There should be at least one consecutive word character at this position.
+        WORD_MOST_ONE,          // There should be at most one word character at this position.
         CHAR_GROUP,             // Any character in a given group.
         CHAR_GROUP_LEAST_ONE,   // Any character in a given group, but with at least one match.
         CHAR_GROUP_MOST_ONE,    // Any character in a given group, but must match at most once.
@@ -87,42 +91,6 @@ namespace cpp_grep{
 
     // endregion
 
-//    union URegexPatternPortionInfo{
-//        LiteralCharClass literal_cls{};
-//        GroupCharClass grp_char_cls;
-//        shared_ptr<OrCharClass> or_char_cls;
-//        shared_ptr<PatternCharClass> pat_char_cls;
-//
-//        // Using placement new so GroupCharClass can still be used
-//        // inside despite its non-trivial constructor.
-//        URegexPatternPortionInfo(){
-//            new(&grp_char_cls) GroupCharClass();
-//        }
-//
-//        // Copy ctor and assignment operators are redefined
-//        // to avoid any problems with vectors.
-//        URegexPatternPortionInfo(const URegexPatternPortionInfo& val){
-//            memcpy(
-//                (void*)this,
-//                (void*)&val,
-//                sizeof(URegexPatternPortionInfo)
-//            );
-//        }
-//
-//        URegexPatternPortionInfo& operator=(const URegexPatternPortionInfo& val){
-//            if (this != &val){
-//                memcpy(
-//                    (void*)this,
-//                    (void*)&val,
-//                    sizeof(URegexPatternPortionInfo)
-//                );
-//            }
-//            return *this;
-//        }
-//
-//        ~URegexPatternPortionInfo(){}
-//    };
-
 
     class RegexPatternPortion{
         ECharClass char_cls;
@@ -138,6 +106,7 @@ namespace cpp_grep{
             RegexPatternPortion(char literal, ubyte one_or_more);
             RegexPatternPortion(char literal, uint idx);
             explicit RegexPatternPortion(ECharClass char_cls);
+            RegexPatternPortion(ECharClass char_cls, ubyte flg);
             RegexPatternPortion(ECharClass char_cls, uint start);
             RegexPatternPortion(ECharClass char_cls, uint start, uint end);
             RegexPatternPortion(const string& char_grp, bool positive_check);

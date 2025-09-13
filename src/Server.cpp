@@ -139,6 +139,76 @@ namespace cpp_grep{
                 }
                 return match_here(input_line.substr(input_index + count), portions, 0, check_pattern_idx, processed);
             }
+            case ECharClass::DIGIT_MOST_ONE:
+            {
+                uint count = 0;
+                while (priv::is_digit(input_line[input_index + count])){
+                    count++;
+                    if (count > 1){
+                        return false;
+                    }
+                }
+                
+                if (processed != nullptr){
+                    (*processed) += count;
+                }
+                
+                check_pattern_idx++;
+                return match_here(input_line, portions, input_index + count, check_pattern_idx, processed);
+            }
+            case ECharClass::DIGIT_LEAST_ONE:
+            {
+                uint count = 0;
+                while (priv::is_digit(input_line[input_index + count])){
+                    count++;
+                }
+                
+                if (!count){
+                    return false;
+                }
+
+                if (processed != nullptr){
+                    (*processed) += count;
+                }
+
+                check_pattern_idx++;
+                return match_here(input_line, portions, input_index + count, check_pattern_idx, processed);
+            }
+            case ECharClass::WORD_MOST_ONE:
+            {
+                uint count = 0;
+                while (priv::is_word(input_line[input_index + count])){
+                    count++;
+                    if (count > 1){
+                        return false;
+                    }
+                }
+
+                if (processed != nullptr){
+                    (*processed) += count;
+                }
+
+                check_pattern_idx++;
+                return match_here(input_line, portions, input_index + count, check_pattern_idx, processed);
+            }
+            case ECharClass::WORD_LEAST_ONE:
+            {
+                uint count = 0;
+                while (priv::is_word(input_line[input_index + count])){
+                    count++;
+                }
+
+                if (!count){
+                    return false;
+                }
+
+                if (processed != nullptr){
+                    (*processed) += count;
+                }
+
+                check_pattern_idx++;
+                return match_here(input_line, portions, input_index + count, check_pattern_idx, processed);
+            }
             case ECharClass::CHAR_GROUP_MOST_ONE:
             {
                 uint i = 0;
