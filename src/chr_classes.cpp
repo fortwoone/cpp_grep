@@ -341,6 +341,31 @@ namespace cpp_grep{
         cls_info = make_shared<PatternCharClass>(subpattern);
     }
 
+    RegexPatternPortion::RegexPatternPortion(ubyte backref_index){
+        char_cls = ECharClass::BACKREFERENCE;
+        start = 0;
+        end = 1;
+        cls_info = make_shared<BackRefCharClass>(backref_index);
+    }
+    
+    RegexPatternPortion::RegexPatternPortion(ubyte backref_index, ubyte flg){
+        switch (flg){
+            case priv::FLG_ZERO_OR_ONE:
+                char_cls = ECharClass::BACKREF_MOST_ONE;
+                break;
+            case priv::FLG_ONE_OR_MORE:
+                char_cls = ECharClass::BACKREF_LEAST_ONE;
+                break;
+            default:
+                char_cls = ECharClass::BACKREFERENCE;
+                break;
+        }
+        
+        start = 0;
+        end = 1;
+        cls_info = make_shared<BackRefCharClass>(backref_index);
+    }
+
     /**
      * Copy constructor for RegexPatternPortion.
      * @param val The original match object.
@@ -427,10 +452,18 @@ namespace cpp_grep{
     }
     // endregion
 
-    vector<RegexPatternPortion> extract_patterns(const string& input){
+    // region RegexPatternPortion: Getters (backref. char. class)
+    ubyte RegexPatternPortion::get_backref_index() const{
+        if (char_cls != ECharClass::BACKREFERENCE && char_cls != ECharClass::BACKREF_LEAST_ONE && char_cls != ECharClass::BACKREF_MOST_ONE){
+            throw logic_error("Cannot retrieve a backreference index from a non-backreference portion object");
+        }
+        return ((BackRefCharClass*)cls_info.get())->backref;
+    }
+    // endregion
+
+    vector<RegexPatternPortion> extract_patterns(const string& input, uint& caught_grp_count){
         string temp = input;
         vector<RegexPatternPortion> ret;  // The return value.
-        vector<RegexPatternPortion> backreferences; // Backreference list.
         uint idx = 0;
         size_t orig_size = input.size();
         while (!temp.empty()){
@@ -533,11 +566,11 @@ namespace cpp_grep{
                 }
 
                 uint nb = stoi(nb_chars);
-                if (backreferences.empty()){
+                if (!caught_grp_count){
                     throw out_of_range("There are no stored backreferences.");
                 }
 
-                // Check if the pattern is used in conjunction with "zero-or-one" or "one-or-more" flags.
+                // Check if the backreference is used in conjunction with "zero-or-one" or "one-or-more" flags.
                 char following_chr;
                 try{
                     following_chr = temp.at(count + 2);
@@ -546,20 +579,23 @@ namespace cpp_grep{
                     following_chr = '\0';
                 }
 
-                const auto& backref_pat = backreferences.at(nb - 1);
+                if (nb > caught_grp_count){
+                    throw out_of_range("Cannot backreference a capture group which wasn't saved yet.");
+                }
                 switch (following_chr){
                     case '+':
                         // One or more.
-                        ret.emplace_back(backref_pat.get_subpattern(), priv::FLG_ONE_OR_MORE);
+                        ret.emplace_back(static_cast<ubyte>(nb - 1), priv::FLG_ONE_OR_MORE);
                         break;
                     case '?':
                         // Zero or one.
-                        ret.emplace_back(backref_pat.get_subpattern(), priv::FLG_ZERO_OR_ONE);
+                        ret.emplace_back(static_cast<ubyte>(nb - 1), priv::FLG_ZERO_OR_ONE);
                         break;
                     default:
-                        ret.emplace_back(backref_pat);
+                        ret.emplace_back(static_cast<ubyte>(nb - 1));
                         break;
                 }
+
                 temp.erase(0, count + 1);
             }
             else if (temp.starts_with('[') && temp.contains(']')){
@@ -637,9 +673,9 @@ namespace cpp_grep{
                 }
                 auto extracted_subpattern_string = temp.substr(1, index - 1);
                 cerr << "Extracted subpattern: " << extracted_subpattern_string << "\n";
-                auto extracted_subpattern = extract_patterns(extracted_subpattern_string);
+                backref_texts.emplace_back();  // Create a new string to memorise during pattern matching.
+                auto extracted_subpattern = extract_patterns(extracted_subpattern_string, caught_grp_count);
                 ret.emplace_back(extracted_subpattern, flg);
-                backreferences.emplace_back(extracted_subpattern, flg);
                 idx++;
                 temp.erase(
                     0,
@@ -653,8 +689,8 @@ namespace cpp_grep{
                 string subpattern_b = temp.substr(sep_pos + 1);
                 cerr << "Subpattern A: " << subpattern_a << "\n";
                 cerr << "Subpattern B: " << subpattern_b << "\n";
-                auto extracted_spa = extract_patterns(subpattern_a);
-                auto extracted_spb = extract_patterns(subpattern_b);
+                auto extracted_spa = extract_patterns(subpattern_a, caught_grp_count);
+                auto extracted_spb = extract_patterns(subpattern_b, caught_grp_count);
                 ret.emplace_back(extracted_spa, extracted_spb);
                 idx++;
                 temp.erase(0, subpattern_a.size() + subpattern_b.size() + 1);

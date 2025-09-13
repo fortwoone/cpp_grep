@@ -61,6 +61,9 @@ namespace cpp_grep{
         PATTERN,                // The subpattern must be matched at the given location.
         PATTERN_LEAST_ONE,      // The given subpattern must be matched at least once consecutively.
         PATTERN_MOST_ONE,       // The given subpattern must match at most once.
+        BACKREFERENCE,          // The capture group saved at index n must match the same text as before in this position.
+        BACKREF_LEAST_ONE,      // Same behaviour, but has to occur at least once.
+        BACKREF_MOST_ONE,       // Same behaviour as BACKREFERENCE, but must occur at most once to match.
     };
 
     namespace priv{
@@ -68,10 +71,7 @@ namespace cpp_grep{
     }
 
     // region Character class structs
-
-    struct CharClass{
-
-    };
+    struct CharClass{};
 
     // TODO: potential optimisation by squashing multiple literal checks into one big sequence comparison
     //  (i.e. one class object). Need to experiment later.
@@ -89,6 +89,11 @@ namespace cpp_grep{
         : char_group(char_grp), positive_match(positive_match){}
     };
 
+    struct BackRefCharClass: public CharClass{
+        ubyte backref;
+
+        explicit BackRefCharClass(ubyte backref): backref(backref){}
+    };
     // endregion
 
 
@@ -116,6 +121,8 @@ namespace cpp_grep{
             RegexPatternPortion(const vector<RegexPatternPortion>& subpattern1, const vector<RegexPatternPortion>& subpattern2);
             explicit RegexPatternPortion(const vector<RegexPatternPortion>& subpattern);
             RegexPatternPortion(const vector<RegexPatternPortion>& subpattern, ubyte flg);
+            explicit RegexPatternPortion(ubyte backref_index);
+            RegexPatternPortion(ubyte backref_index, ubyte flg);
 
             RegexPatternPortion(const RegexPatternPortion& val);
 
@@ -138,6 +145,9 @@ namespace cpp_grep{
             // GETTERS (PATTERN CHAR. CLASS)
             [[nodiscard]] vector<RegexPatternPortion> get_subpattern() const;
 
+            // GETTERS (BACKREF CHAR. CLASS)
+            [[nodiscard]] ubyte get_backref_index() const;
+
     };
 
     struct OrCharClass: CharClass{
@@ -154,5 +164,5 @@ namespace cpp_grep{
         explicit PatternCharClass(const vector<RegexPatternPortion>& subpattern);
     };
 
-    vector<RegexPatternPortion> extract_patterns(const string& input);
+    vector<RegexPatternPortion> extract_patterns(const string& input, uint& caught_grp_count);
 }
