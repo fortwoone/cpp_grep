@@ -39,6 +39,7 @@ namespace cpp_grep{
         char_cls = ECharClass::ANY;
         start = 0;
         end = 1;
+        cls_info = nullptr;
     }
 
     /**
@@ -50,7 +51,7 @@ namespace cpp_grep{
         char_cls = ECharClass::LITERAL;
         start = 0;
         end = 1;
-        portion_info.literal_cls.literal = literal;
+        cls_info = make_shared<LiteralCharClass>(literal);
     }
 
     /**
@@ -81,7 +82,7 @@ namespace cpp_grep{
         }
         start = 0;
         end = 1;
-        portion_info.literal_cls.literal = literal;
+        cls_info = make_shared<LiteralCharClass>(literal);
     }
 
     /**
@@ -94,7 +95,7 @@ namespace cpp_grep{
         char_cls = ECharClass::LITERAL;
         start = idx;
         end = idx + 1;
-        portion_info.literal_cls.literal = literal;
+        cls_info = make_shared<LiteralCharClass>(literal);
     }
 
     /**
@@ -108,6 +109,7 @@ namespace cpp_grep{
             this->char_cls = char_cls;
             start = 0;
             end = 1;
+            cls_info = nullptr;
             return;
         }
         throw invalid_argument("Cannot set char. class to this value: additional information is required.");
@@ -125,6 +127,7 @@ namespace cpp_grep{
             this->char_cls = char_cls;
             this->start = start;
             end = start + 1;
+            cls_info = nullptr;
             return;
         }
         throw invalid_argument("Cannot set char. class to this value: additional information is required.");
@@ -145,6 +148,7 @@ namespace cpp_grep{
             this->char_cls = char_cls;
             this->start = start;
             this->end = end;
+            cls_info = nullptr;
             return;
         }
         throw invalid_argument("Cannot set char. class to this value: additional information is required.");
@@ -165,8 +169,37 @@ namespace cpp_grep{
         char_cls = ECharClass::CHAR_GROUP;
         start = 0;
         end = 1;
-        portion_info.grp_char_cls.char_group = char_grp;
-        portion_info.grp_char_cls.positive_match = positive_check;
+        cls_info = make_shared<GroupCharClass>(char_grp, positive_check);
+    }
+
+    /**
+     * Initialise a character group regex pattern portion object.
+     * The span's start will be set to 0 and its end to 1.
+     * @param char_grp The character group.
+     * @param positive_check Whether this group is a positive group or a negative group.
+     * @param flg The modifier.
+     * @throw invalid_argument if the character group is empty.
+     */
+    RegexPatternPortion::RegexPatternPortion(const string& char_grp, bool positive_check, ubyte flg){
+        if (char_grp.empty()){
+            throw invalid_argument("Cannot provide an empty character group");
+        }
+
+        switch (flg){
+            case priv::FLG_ZERO_OR_ONE:
+                char_cls = ECharClass::CHAR_GROUP_MOST_ONE;
+                break;
+            case priv::FLG_ONE_OR_MORE:
+                char_cls = ECharClass::CHAR_GROUP_LEAST_ONE;
+                break;
+            default:
+                char_cls = ECharClass::CHAR_GROUP;
+                break;
+        }
+
+        start = 0;
+        end = 1;
+        cls_info = make_shared<GroupCharClass>(char_grp, positive_check);
     }
 
     /**
@@ -185,8 +218,7 @@ namespace cpp_grep{
         char_cls = ECharClass::CHAR_GROUP;
         this->start = start;
         end = start + 1;
-        portion_info.grp_char_cls.char_group = char_grp;
-        portion_info.grp_char_cls.positive_match = positive_check;
+        cls_info = make_shared<GroupCharClass>(char_grp, positive_check);
     }
 
     /**
@@ -207,8 +239,7 @@ namespace cpp_grep{
         char_cls = ECharClass::CHAR_GROUP;
         this->start = start;
         this->end = end;
-        portion_info.grp_char_cls.char_group = char_grp;
-        portion_info.grp_char_cls.positive_match = positive_check;
+        cls_info = make_shared<GroupCharClass>(char_grp, positive_check);
     }
 
     /**
@@ -227,7 +258,7 @@ namespace cpp_grep{
         char_cls = ECharClass::OR;
         start = 0;
         end = 1;
-        portion_info.or_char_cls = make_shared<OrCharClass>(subpattern1, subpattern2);
+        cls_info = make_shared<OrCharClass>(subpattern1, subpattern2);
     }
 
     /**
@@ -243,7 +274,7 @@ namespace cpp_grep{
         char_cls = ECharClass::PATTERN;
         start = 0;
         end = 1;
-        portion_info.pat_char_cls = make_shared<PatternCharClass>(subpattern);
+        cls_info = make_shared<PatternCharClass>(subpattern);
     }
 
     RegexPatternPortion::RegexPatternPortion(const vector<RegexPatternPortion>& subpattern, ubyte flg){
@@ -264,7 +295,7 @@ namespace cpp_grep{
         }
         start = 0;
         end = 1;
-        portion_info.pat_char_cls = make_shared<PatternCharClass>(subpattern);
+        cls_info = make_shared<PatternCharClass>(subpattern);
     }
 
     /**
@@ -275,7 +306,7 @@ namespace cpp_grep{
         char_cls = val.char_cls;
         start = val.start;
         end = val.end;
-        portion_info = val.portion_info;
+        cls_info = val.cls_info;
     }
     // endregion
 
@@ -308,23 +339,23 @@ namespace cpp_grep{
             // This should NEVER happen, but in case it does...
             throw logic_error("Cannot retrieve a literal from a non-literal pattern portion object");
         }
-        return portion_info.literal_cls.literal;
+        return ((LiteralCharClass*)cls_info.get())->literal;
     }
     // endregion
 
     // region RegexPatternPortion : Getters (group char. class)
     string RegexPatternPortion::get_char_grp() const{
-        if (char_cls != ECharClass::CHAR_GROUP){
+        if (char_cls != ECharClass::CHAR_GROUP && char_cls != ECharClass::CHAR_GROUP_MOST_ONE && char_cls != ECharClass::CHAR_GROUP_LEAST_ONE){
             throw logic_error("Cannot retrieve a char group string from a non-char. group pattern portion object");
         }
-        return portion_info.grp_char_cls.char_group;
+        return ((GroupCharClass*)cls_info.get())->char_group;
     }
 
     bool RegexPatternPortion::is_positive_grp() const{
-        if (char_cls != ECharClass::CHAR_GROUP){
+        if (char_cls != ECharClass::CHAR_GROUP && char_cls != ECharClass::CHAR_GROUP_MOST_ONE && char_cls != ECharClass::CHAR_GROUP_LEAST_ONE){
             throw logic_error("Cannot retrieve a char group string from a non-char. group pattern portion object");
         }
-        return portion_info.grp_char_cls.positive_match;
+        return ((GroupCharClass*)cls_info.get())->positive_match;
     }
     // endregion
 
@@ -333,14 +364,14 @@ namespace cpp_grep{
         if (char_cls != ECharClass::OR){
             throw logic_error("Cannot retrieve a subpattern from a non-or pattern portion object");
         }
-        return portion_info.or_char_cls->subpattern1;
+        return ((OrCharClass*)cls_info.get())->subpattern1;
     }
 
     vector<RegexPatternPortion> RegexPatternPortion::get_subpattern2() const{
         if (char_cls != ECharClass::OR){
             throw logic_error("Cannot retrieve a subpattern from a non-or pattern portion object");
         }
-        return portion_info.or_char_cls->subpattern2;
+        return ((OrCharClass*)cls_info.get())->subpattern2;
     }
     // endregion
 
@@ -349,7 +380,7 @@ namespace cpp_grep{
         if (char_cls != ECharClass::PATTERN && char_cls != ECharClass::PATTERN_LEAST_ONE && char_cls != ECharClass::PATTERN_MOST_ONE){
             throw logic_error("Cannot retrieve a subpattern from a non-subpattern portion object");
         }
-        return portion_info.pat_char_cls->subpattern;
+        return ((PatternCharClass*)cls_info.get())->subpattern;
     }
     // endregion
 
@@ -436,17 +467,38 @@ namespace cpp_grep{
                 uint range_start = 0;
                 uint range_end = temp.find(']');
                 string stripped_char_grp = temp.substr(1, range_end - 1);
-                bool positive_check = stripped_char_grp.starts_with('^');
+                bool positive_check = !stripped_char_grp.starts_with('^');
                 if (!positive_check){
                     stripped_char_grp.erase(0, 1);
                 }
+                char following_chr;
+                try{
+                    following_chr = temp.at(range_end + 1);
+                }
+                catch (const out_of_range& exc){
+                    following_chr = '\0';
+                }
+
+                ubyte flg;
+                switch (following_chr){
+                    case '+':
+                        flg = priv::FLG_ONE_OR_MORE;
+                        break;
+                    case '?':
+                        flg = priv::FLG_ZERO_OR_ONE;
+                        break;
+                    default:
+                        flg = 0;
+                        break;
+                }
+
                 ret.emplace_back(
                     stripped_char_grp,
                     positive_check,
-                    idx
+                    flg
                 );
                 idx++;
-                temp.erase(range_start, range_end);
+                temp.erase(range_start, range_end + (flg > 0 ? 2 : 1));
             }
             else if (temp.starts_with('(') and temp.contains(')')){
                 // Pattern group

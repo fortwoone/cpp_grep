@@ -139,6 +139,59 @@ namespace cpp_grep{
                 }
                 return match_here(input_line.substr(input_index + count), portions, 0, check_pattern_idx, processed);
             }
+            case ECharClass::CHAR_GROUP_MOST_ONE:
+            {
+                uint i = 0;
+                bool is_positive = portion.is_positive_grp();
+                const auto& char_grp = portion.get_char_grp();
+                if (is_positive){
+                    while ((input_index + i) < input_line.size() && char_grp.contains(input_line[input_index + i])){
+                        i++;
+                    }
+                }
+                else{
+                    while ((input_index + i) < input_line.size() && !char_grp.contains(input_line[input_index + i])){
+                        i++;
+                    }
+                }
+
+                if (i > 1){
+                    return false;
+                }
+                if (processed != nullptr){
+                    (*processed) += i;
+                }
+                check_pattern_idx++;
+                return match_here(input_line, portions, input_index + i, check_pattern_idx, processed);
+            }
+            case ECharClass::CHAR_GROUP_LEAST_ONE:
+            {
+                uint i = 0;
+
+                bool is_positive = portion.is_positive_grp();
+                const auto& char_grp = portion.get_char_grp();
+
+                if (is_positive){
+                    while ((input_index + i) < input_line.size() && char_grp.contains(input_line[input_index + i])){
+                        i++;
+                    }
+                }
+                else{
+                    while ((input_index + i) < input_line.size() && !char_grp.contains(input_line[input_index + i])){
+                        i++;
+                    }
+                }
+
+                if (i < 1){
+                    return false;
+                }
+
+                if (processed != nullptr){
+                    (*processed) += i;
+                }
+                check_pattern_idx++;
+                return match_here(input_line, portions, input_index + i, check_pattern_idx, processed);
+            }
             case ECharClass::ANY_LEAST_ONE:
             {
                 if (pattern_index + 1 >= portions.size()){

@@ -40,21 +40,23 @@ namespace cpp_grep{
 
     // An enum representing all supported character classes.
     enum class ECharClass: ubyte{
-        ANY,                // Match any character at that position.
-        LITERAL,            // Any literal character (exact match).
-        DIGIT,              // Any digit character at this position.
-        WORD,               // Any word character at this position.
-        CHAR_GROUP,         // Any character in a given group.
-        START_ANCHOR,       // The string must start with the given expression afterwards.
-        END_ANCHOR,         // The string must end with the given expression (specified before).
-        ONE_OR_MORE,        // The string must contain one or more consecutive occurrences of the literal.
-        ZERO_OR_ONE,        // The string must contain at most one occurrence of this literal at the current location.
-        ANY_LEAST_ONE,      // At least one unspecified character.
-        ANY_MOST_ONE,       // At most one unspecified character.
-        OR,                 // Must validate either one of two patterns.
-        PATTERN,            // The subpattern must be matched at the given location.
-        PATTERN_LEAST_ONE,  // The given subpattern must be matched at least once consecutively.
-        PATTERN_MOST_ONE,   // The given subpattern must match at most once.
+        ANY,                    // Match any character at that position.
+        LITERAL,                // Any literal character (exact match).
+        DIGIT,                  // Any digit character at this position.
+        WORD,                   // Any word character at this position.
+        CHAR_GROUP,             // Any character in a given group.
+        CHAR_GROUP_LEAST_ONE,   // Any character in a given group, but with at least one match.
+        CHAR_GROUP_MOST_ONE,    // Any character in a given group, but must match at most once.
+        START_ANCHOR,           // The string must start with the given expression afterwards.
+        END_ANCHOR,             // The string must end with the given expression (specified before).
+        ONE_OR_MORE,            // The string must contain one or more consecutive occurrences of the literal.
+        ZERO_OR_ONE,            // The string must contain at most one occurrence of this literal at the current location.
+        ANY_LEAST_ONE,          // At least one unspecified character.
+        ANY_MOST_ONE,           // At most one unspecified character.
+        OR,                     // Must validate either one of two patterns.
+        PATTERN,                // The subpattern must be matched at the given location.
+        PATTERN_LEAST_ONE,      // The given subpattern must be matched at least once consecutively.
+        PATTERN_MOST_ONE,       // The given subpattern must match at most once.
     };
 
     namespace priv{
@@ -63,61 +65,63 @@ namespace cpp_grep{
 
     // region Character class structs
 
+    struct CharClass{
+
+    };
+
     // TODO: potential optimisation by squashing multiple literal checks into one big sequence comparison
     //  (i.e. one class object). Need to experiment later.
-    struct LiteralCharClass{
+    struct LiteralCharClass: public CharClass{
         char literal;  // The character to check for.
+
+        explicit LiteralCharClass(char literal): literal(literal){}
     };
 
-    struct GroupCharClass{
+    struct GroupCharClass: public CharClass{
         string char_group;       // The character group.
         bool positive_match{false};    // Positive/negative character group.
-        GroupCharClass(){
-            char_group = {};  // Initialise the field if using this constructor.
-        };
+
+        GroupCharClass(const string& char_grp, bool positive_match)
+        : char_group(char_grp), positive_match(positive_match){}
     };
 
-    // Forward declaration here because pattern objects need to be stored in these structs (vectors),
-    // so RegexPatternPortion has to be declared.
-    struct OrCharClass;
-    struct PatternCharClass;
     // endregion
 
-    union URegexPatternPortionInfo{
-        LiteralCharClass literal_cls{};
-        GroupCharClass grp_char_cls;
-        shared_ptr<OrCharClass> or_char_cls;
-        shared_ptr<PatternCharClass> pat_char_cls;
-
-        // Using placement new so GroupCharClass can still be used
-        // inside despite its non-trivial constructor.
-        URegexPatternPortionInfo(){
-            new(&grp_char_cls) GroupCharClass();
-        }
-
-        // Copy ctor and assignment operators are redefined
-        // to avoid any problems with vectors.
-        URegexPatternPortionInfo(const URegexPatternPortionInfo& val){
-            memcpy(
-                (void*)this,
-                (void*)&val,
-                sizeof(URegexPatternPortionInfo)
-            );
-        }
-
-        URegexPatternPortionInfo& operator=(const URegexPatternPortionInfo& val){
-            if (this != &val){
-                memcpy(
-                    (void*)this,
-                    (void*)&val,
-                    sizeof(URegexPatternPortionInfo)
-                );
-            }
-            return *this;
-        }
-
-        ~URegexPatternPortionInfo(){}
-    };
+//    union URegexPatternPortionInfo{
+//        LiteralCharClass literal_cls{};
+//        GroupCharClass grp_char_cls;
+//        shared_ptr<OrCharClass> or_char_cls;
+//        shared_ptr<PatternCharClass> pat_char_cls;
+//
+//        // Using placement new so GroupCharClass can still be used
+//        // inside despite its non-trivial constructor.
+//        URegexPatternPortionInfo(){
+//            new(&grp_char_cls) GroupCharClass();
+//        }
+//
+//        // Copy ctor and assignment operators are redefined
+//        // to avoid any problems with vectors.
+//        URegexPatternPortionInfo(const URegexPatternPortionInfo& val){
+//            memcpy(
+//                (void*)this,
+//                (void*)&val,
+//                sizeof(URegexPatternPortionInfo)
+//            );
+//        }
+//
+//        URegexPatternPortionInfo& operator=(const URegexPatternPortionInfo& val){
+//            if (this != &val){
+//                memcpy(
+//                    (void*)this,
+//                    (void*)&val,
+//                    sizeof(URegexPatternPortionInfo)
+//                );
+//            }
+//            return *this;
+//        }
+//
+//        ~URegexPatternPortionInfo(){}
+//    };
 
 
     class RegexPatternPortion{
@@ -125,7 +129,7 @@ namespace cpp_grep{
         uint start;
         uint end;
 
-        URegexPatternPortionInfo portion_info;
+        shared_ptr<CharClass> cls_info;
 
         public:
             // CTORS
@@ -139,6 +143,7 @@ namespace cpp_grep{
             RegexPatternPortion(const string& char_grp, bool positive_check);
             RegexPatternPortion(const string& char_grp, bool positive_check, uint start);
             RegexPatternPortion(const string& char_grp, bool positive_check, uint start, uint end);
+            RegexPatternPortion(const string& char_grp, bool positive_check, ubyte flg);
             RegexPatternPortion(const vector<RegexPatternPortion>& subpattern1, const vector<RegexPatternPortion>& subpattern2);
             explicit RegexPatternPortion(const vector<RegexPatternPortion>& subpattern);
             RegexPatternPortion(const vector<RegexPatternPortion>& subpattern, ubyte flg);
@@ -166,14 +171,14 @@ namespace cpp_grep{
 
     };
 
-    struct OrCharClass{
+    struct OrCharClass: CharClass{
         vector<RegexPatternPortion> subpattern1{}, subpattern2{};
 
         OrCharClass() = default;
         OrCharClass(const vector<RegexPatternPortion>& subpattern1, const vector<RegexPatternPortion>& subpattern2);
     };
 
-    struct PatternCharClass{
+    struct PatternCharClass: CharClass{
         vector<RegexPatternPortion> subpattern{};
 
         PatternCharClass() = default;
