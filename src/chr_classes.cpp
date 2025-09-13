@@ -355,7 +355,8 @@ namespace cpp_grep{
 
     vector<RegexPatternPortion> extract_patterns(const string& input){
         string temp = input;
-        vector<RegexPatternPortion> ret;
+        vector<RegexPatternPortion> ret;  // The return value.
+        vector<RegexPatternPortion> backreferences; // Backreference list.
         uint idx = 0;
         size_t orig_size = input.size();
         while (!temp.empty()){
@@ -391,6 +392,44 @@ namespace cpp_grep{
                 );
                 idx++;
                 temp.erase(0, priv::WORD_CLS_PATTERN.size());
+            }
+            else if (temp.starts_with('\\')){
+                // Backreferences
+                string nb_chars;
+                uint count = 0;
+                while (priv::is_digit(temp[count + 1])){
+                    count++;
+                    nb_chars.append(temp[count + 1], 1);
+                }
+                uint nb = stoi(nb_chars);
+                if (backreferences.empty()){
+                    throw out_of_range("There are no stored backreferences.");
+                }
+
+                // Check if the pattern is used in conjunction with "zero-or-one" or "one-or-more" flags.
+                char following_chr;
+                try{
+                    following_chr = temp.at(count + 2);
+                }
+                catch (const out_of_range& exc){
+                    following_chr = '\0';
+                }
+
+                const auto& backref_pat = backreferences.at(nb - 1);
+                switch (following_chr){
+                    case '+':
+                        // One or more.
+                        ret.emplace_back(backref_pat.get_subpattern(), priv::FLG_ONE_OR_MORE);
+                        break;
+                    case '?':
+                        // Zero or one.
+                        ret.emplace_back(backref_pat.get_subpattern(), priv::FLG_ZERO_OR_ONE);
+                        break;
+                    default:
+                        ret.emplace_back(backref_pat);
+                        break;
+                }
+                temp.erase(0, count + 1);
             }
             else if (temp.starts_with('[') && temp.contains(']')){
                 // Character groups
@@ -448,6 +487,7 @@ namespace cpp_grep{
                 cerr << "Extracted subpattern: " << extracted_subpattern_string << "\n";
                 auto extracted_subpattern = extract_patterns(extracted_subpattern_string);
                 ret.emplace_back(extracted_subpattern, flg);
+                backreferences.emplace_back(extracted_subpattern);
                 idx++;
                 temp.erase(
                     0,

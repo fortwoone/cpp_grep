@@ -23,6 +23,8 @@ namespace cpp_grep{
     using std::logic_error;
     using std::make_shared;
     using std::memcpy;
+    using std::out_of_range;
+    using std::stoi;
     using std::string;
     using std::swap;
     using std::shared_ptr;
