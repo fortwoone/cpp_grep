@@ -4,6 +4,7 @@
 #include <string>
 #include <utility>
 
+#include "backref_mgr.hpp"
 #include "chr_class_handlers.hpp"
 #include "chr_classes.hpp"
 
@@ -66,7 +67,7 @@ namespace cpp_grep{
         }
     }
 
-    bool match_here(const string& input_line, const vector<RegexPatternPortion>& portions, uint input_index, uint pattern_index, vector<string>& backref_texts, uint* processed = nullptr){  // NOLINT
+    bool match_here(const string& input_line, const vector<RegexPatternPortion>& portions, uint input_index, uint pattern_index, BackRefManager& backref_texts, uint* processed = nullptr){  // NOLINT
         if (pattern_index >= portions.size()){
             return true;
         }
@@ -320,6 +321,7 @@ namespace cpp_grep{
             case ECharClass::PATTERN:
             {
                 uint count = 0;
+                ubyte reserved_slot = backref_texts.reserve_first_free_slot();
                 if (!match_here(input_line, portion.get_subpattern(), input_index, 0, backref_texts, &count)){
                     return false;
                 }
@@ -330,19 +332,7 @@ namespace cpp_grep{
 
                 // Attempt to save the matched text into the backreference list for later use.
                 // Find the first empty string inside, and replace it with the text if there is indeed an empty string.
-                auto begin_iter = backref_texts.begin();
-                auto end_iter = backref_texts.end();
-                auto found = find_if(
-                    begin_iter,
-                    end_iter,
-                    [](const string& txt){
-                        return txt.empty();
-                    }
-                );
-                if (found != end_iter){
-                    auto index = found - begin_iter;
-                    backref_texts[index] = input_line.substr(input_index, count);
-                }
+                backref_texts.set_text_at(reserved_slot, input_line.substr(input_index, count));
 
                 input_index += count - 1;
                 return match_here(input_line, portions, input_index + 1, check_pattern_idx, backref_texts, processed);
@@ -352,6 +342,7 @@ namespace cpp_grep{
                 uint count = 0;
                 uint processed_chrs = 0;
                 uint processed_tot = 0;
+                ubyte reserved_slot = backref_texts.reserve_first_free_slot();
                 while (match_here(input_line, portion.get_subpattern(), input_index + processed_tot, 0, backref_texts, &processed_chrs)){
                     count++;
                     processed_tot += processed_chrs;
@@ -369,19 +360,7 @@ namespace cpp_grep{
 
                 // Attempt to save the matched text into the backreference list for later use.
                 // Find the first empty string inside, and replace it with the text if there is indeed an empty string.
-                auto begin_iter = backref_texts.begin();
-                auto end_iter = backref_texts.end();
-                auto found = find_if(
-                    begin_iter,
-                    end_iter,
-                    [](const string& txt){
-                        return txt.empty();
-                    }
-                );
-                if (found != end_iter){
-                    auto index = found - begin_iter;
-                    backref_texts[index] = input_line.substr(input_index, processed_tot);
-                }
+                backref_texts.set_text_at(reserved_slot, input_line.substr(input_index, processed_tot));
 
                 check_pattern_idx++;
                 return match_here(input_line, portions, input_index + processed_tot, check_pattern_idx, backref_texts, processed);
@@ -391,6 +370,7 @@ namespace cpp_grep{
                 uint count = 0;
                 uint processed_chrs = 0;
                 uint processed_tot = 0;
+                ubyte reserved_slot = backref_texts.reserve_first_free_slot();
                 while (match_here(input_line.substr(input_index + processed_tot), portion.get_subpattern(), 0, 0, backref_texts, &processed_chrs)){
                     count++;
                     processed_tot += processed_chrs;
@@ -409,19 +389,10 @@ namespace cpp_grep{
                 if (processed_tot > 0){
                     // Attempt to save the matched text into the backreference list for later use.
                     // Find the first empty string inside, and replace it with the text if there is indeed an empty string.
-                    auto begin_iter = backref_texts.begin();
-                    auto end_iter = backref_texts.end();
-                    auto found = find_if(
-                        begin_iter,
-                        end_iter,
-                        [](const string& txt){
-                            return txt.empty();
-                        }
-                    );
-                    if (found != end_iter){
-                        auto index = found - begin_iter;
-                        backref_texts[index] = input_line.substr(input_index, processed_tot);
-                    }
+                    backref_texts.set_text_at(reserved_slot, input_line.substr(input_index, processed_tot));
+                }
+                else{
+                    backref_texts.free_at(reserved_slot);
                 }
 
                 check_pattern_idx++;
@@ -437,7 +408,7 @@ namespace cpp_grep{
             case ECharClass::BACKREFERENCE:
             {
                 ubyte backref_index = portion.get_backref_index();
-                const auto& txt = backref_texts.at(backref_index);
+                const auto& txt = backref_texts.get_text_at(backref_index);
 
                 if (input_line.substr(input_index, txt.size()) != txt){
                     return false;
@@ -452,7 +423,7 @@ namespace cpp_grep{
             case ECharClass::BACKREF_LEAST_ONE:
             {
                 ubyte backref_index = portion.get_backref_index() - 1;
-                const auto& txt = backref_texts.at(backref_index);
+                const auto& txt = backref_texts.get_text_at(backref_index);
                 size_t txt_size = txt.size();
                 uint count = 0;
 
@@ -473,7 +444,7 @@ namespace cpp_grep{
             case ECharClass::BACKREF_MOST_ONE:
             {
                 ubyte backref_index = portion.get_backref_index() - 1;
-                const auto& txt = backref_texts.at(backref_index);
+                const auto& txt = backref_texts.get_text_at(backref_index);
                 size_t txt_size = txt.size();
                 uint count = 0;
 
@@ -539,14 +510,12 @@ namespace cpp_grep{
         else if (pattern.length() > 1){
             uint caught_grp_count = 0;
             vector<RegexPatternPortion> portions = extract_patterns(pattern, caught_grp_count);
-            vector<string> backref_texts;
-            backref_texts.resize(caught_grp_count);
+            BackRefManager backref_texts(caught_grp_count);
             for (size_t start = 0; start <= input_line.size(); ++start){
                 if (match_here(input_line, portions, start, 0, backref_texts)){
                     return true;
                 }
-                backref_texts.clear();
-                backref_texts.resize(caught_grp_count);
+                backref_texts.reset();
             }
             return false;
         }
