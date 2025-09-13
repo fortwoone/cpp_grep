@@ -487,7 +487,7 @@ namespace cpp_grep{
                 cerr << "Extracted subpattern: " << extracted_subpattern_string << "\n";
                 auto extracted_subpattern = extract_patterns(extracted_subpattern_string);
                 ret.emplace_back(extracted_subpattern, flg);
-                backreferences.emplace_back(extracted_subpattern);
+                backreferences.emplace_back(extracted_subpattern, flg);
                 idx++;
                 temp.erase(
                     0,
