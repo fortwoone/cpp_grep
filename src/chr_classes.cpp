@@ -673,7 +673,7 @@ namespace cpp_grep{
                 }
                 auto extracted_subpattern_string = temp.substr(1, index - 1);
                 cerr << "Extracted subpattern: " << extracted_subpattern_string << "\n";
-                backref_texts.emplace_back();  // Create a new string to memorise during pattern matching.
+                caught_grp_count++;  // Create a new string to memorise during pattern matching.
                 auto extracted_subpattern = extract_patterns(extracted_subpattern_string, caught_grp_count);
                 ret.emplace_back(extracted_subpattern, flg);
                 idx++;
