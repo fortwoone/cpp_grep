@@ -398,8 +398,8 @@ namespace cpp_grep{
                 string nb_chars;
                 uint count = 0;
                 while (priv::is_digit(temp[count + 1])){
+                    nb_chars.append(1, temp[count + 1]);
                     count++;
-                    nb_chars.append(temp[count + 1], 1);
                 }
                 uint nb = stoi(nb_chars);
                 if (backreferences.empty()){
