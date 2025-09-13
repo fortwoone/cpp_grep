@@ -117,6 +117,11 @@ namespace cpp_grep{
                     // so the literal check can still count as true.
                     count--;
                 }
+
+                if (processed != nullptr){
+                    (*processed) += count;
+                }
+
                 return match_here(input_line.substr(input_index + count), portions, 0, check_pattern_idx, processed);
             }
             case ECharClass::ZERO_OR_ONE:
