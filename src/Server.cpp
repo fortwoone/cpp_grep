@@ -1,4 +1,5 @@
 #include <algorithm>
+#include <fstream>
 #include <iostream>
 #include <stdexcept>
 #include <string>
@@ -14,6 +15,7 @@ using std::cout;
 using std::endl;
 using std::find_if;
 using std::getline;
+using std::ifstream;
 using std::out_of_range;
 using std::runtime_error;
 using std::string;
@@ -686,6 +688,84 @@ namespace cpp_grep{
             throw runtime_error("Unhandled pattern " + pattern);
         }
     }
+
+    bool match_in_file(const string& file, const string& pattern){
+        ifstream file_obj(file);
+        string input_line;
+        bool success = false;
+        if (pattern.length() == 1) {
+            while (getline(file_obj, input_line)){
+                if (input_line.contains(pattern)){
+                    success = true;
+                    cout << input_line << "\n";
+                }
+            }
+            return success;
+        }
+        else if (pattern == priv::DIGIT_CLS_PATTERN){
+            // Handle digit class.
+            while (getline(file_obj, input_line)){
+                if (match_digit_pattern(input_line)){
+                    success = true;
+                    cout << input_line << "\n";
+                }
+            }
+            return success;
+        }
+        else if (pattern == priv::WORD_CLS_PATTERN){
+            // Handle word class.
+            while (getline(file_obj, input_line)){
+                if (match_word_pattern(input_line)){
+                    success = true;
+                    cout << input_line << "\n";
+                }
+            }
+            return success;
+        }
+        else if (pattern.starts_with('[') && pattern.ends_with(']')){
+            // Character group
+            // Don't count the brackets while searching, they simply delimit the group itself.
+            auto stripped_pattern = pattern.substr(1, pattern.size() - 2);
+            if (stripped_pattern.starts_with('^')){
+                // Negative character group
+                while (getline(file_obj, input_line)){
+                    if (match_negative_character_grp(input_line, stripped_pattern.substr(1))){
+                        success = true;
+                        cout << input_line << "\n";
+                    }
+                }
+                return success;
+            }
+            // Positive character group otherwise.
+            while (getline(file_obj, input_line)){
+                if (match_positive_character_grp(input_line, stripped_pattern)){
+                    success = true;
+                    cout << input_line << "\n";
+                }
+            }
+            return success;
+        }
+        else if (pattern.length() > 1){
+            uint caught_grp_count = 0;
+            vector<RegexPatternPortion> portions = extract_patterns(pattern, caught_grp_count);
+            BackRefManager backref_texts(caught_grp_count);
+            while (getline(file_obj, input_line)){
+                for (size_t start = 0; start <= input_line.size(); ++start){
+                    if (match_here(input_line, portions, start, 0, backref_texts)){
+                        success = true;
+                        cout << input_line << "\n";
+                        backref_texts.reset();
+                        break;
+                    }
+                    backref_texts.reset();
+                }
+            }
+            return success;
+        }
+        else {
+            throw runtime_error("Unhandled pattern " + pattern);
+        }
+    }
 }
 
 int main(int argc, char* argv[]) {
@@ -696,8 +776,8 @@ int main(int argc, char* argv[]) {
     // You can use print statements as follows for debugging, they'll be visible when running tests.
     cerr << "Logs from your program will appear here" << endl;
 
-    if (argc != 3) {
-        cerr << "Expected two arguments" << endl;
+    if (argc < 3) {
+        cerr << "Expected at least two arguments" << endl;
         return 1;
     }
 
@@ -709,7 +789,21 @@ int main(int argc, char* argv[]) {
         return 1;
     }
 
-     // Uncomment this block to pass the first stage
+    if (argc == 4){
+        string file = argv[3];
+        try{
+            if (cpp_grep::match_in_file(file, pattern)){
+                return 0;
+            }
+            else{
+                return 1;
+            }
+        }
+        catch (const runtime_error& e){
+            cerr << e.what() << endl;
+            return 1;
+        }
+    }
 
      string input_line;
      getline(cin, input_line);
