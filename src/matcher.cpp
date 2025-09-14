@@ -870,7 +870,7 @@ namespace cpp_grep{
     bool match_in_directory_recursive(const string& directory, const string& pattern){
         vector<string> file_paths;
         for (const auto& dir_entry: fs::recursive_directory_iterator(directory)){
-            file_paths.emplace_back(directory + dir_entry.path().filename().string());
+            file_paths.emplace_back(dir_entry.path().string());
         }
         return match_in_files(file_paths, pattern);
     }
