@@ -403,11 +403,18 @@ namespace cpp_grep{
                     );
                 }
                 else{
+                    uint count = 0;
+                    while (!match_here(input_line, portions, input_index + count + 1, pattern_index + 1, backref_texts, next_outside_portion, processed)){
+                        count++;
+                        if (input_index + count + 1 >= input_line.size()){
+                            break;
+                        }
+                    }
                     check_pattern_idx++;
                     return match_here(
                         input_line,
                         portions,
-                        input_index + 1,
+                        input_index + count + 1,
                         check_pattern_idx,
                         backref_texts,
                         next_outside_portion,
