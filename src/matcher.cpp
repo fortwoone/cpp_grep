@@ -389,6 +389,9 @@ namespace cpp_grep{
                             break;
                         }
                     }
+                    if (!count){
+                        return false;
+                    }
                     check_pattern_idx++;
                     return match_here(
                         input_line,
