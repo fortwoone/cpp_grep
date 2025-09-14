@@ -67,7 +67,15 @@ namespace cpp_grep{
         }
     }
 
-    bool match_here(const string& input_line, const vector<RegexPatternPortion>& portions, uint input_index, uint pattern_index, BackRefManager& backref_texts, uint* processed = nullptr){  // NOLINT
+    bool match_here(  // NOLINT
+        const string& input_line,
+        const vector<RegexPatternPortion>& portions,
+        uint input_index,
+        uint pattern_index,
+        BackRefManager& backref_texts,
+        RegexPatternPortion* next_outside_portion = nullptr,
+        uint* processed = nullptr
+    ){
         if (pattern_index >= portions.size()){
             return true;
         }
@@ -115,10 +123,15 @@ namespace cpp_grep{
                 else if (
                     portions.at(check_pattern_idx).get_char_cls() == ECharClass::LITERAL
                     && portions.at(check_pattern_idx).get_literal() == portion.get_literal()
+                    || next_outside_portion != nullptr
+                    && pattern_index == portions.size() - 1
+                    && next_outside_portion->get_char_cls() == ECharClass::LITERAL
+                    && next_outside_portion->get_literal() == portion.get_literal()
                 ){
                     // Edge case: if a literal check is added with an identical literal
                     // to the one used in this pattern portion, move the subindex backwards by one
                     // so the literal check can still count as true.
+                    // Expanded to work if this is the last literal in a pattern so constant matches are interrupted.
                     count--;
                 }
 
@@ -126,7 +139,15 @@ namespace cpp_grep{
                     (*processed) += count;
                 }
 
-                return match_here(input_line, portions, input_index + count, check_pattern_idx, backref_texts, processed);
+                return match_here(
+                    input_line,
+                    portions,
+                    input_index + count,
+                    check_pattern_idx,
+                    backref_texts,
+                    next_outside_portion,
+                    processed
+                );
             }
             case ECharClass::ZERO_OR_ONE:
             {
@@ -146,7 +167,15 @@ namespace cpp_grep{
                 if (portions.size() <= check_pattern_idx){
                     return true;
                 }
-                return match_here(input_line, portions, input_index + count, check_pattern_idx, backref_texts, processed);
+                return match_here(
+                    input_line,
+                    portions,
+                    input_index + count,
+                    check_pattern_idx,
+                    backref_texts,
+                    next_outside_portion,
+                    processed
+                );
             }
             case ECharClass::DIGIT_MOST_ONE:
             {
@@ -163,7 +192,15 @@ namespace cpp_grep{
                 }
                 
                 check_pattern_idx++;
-                return match_here(input_line, portions, input_index + count, check_pattern_idx, backref_texts, processed);
+                return match_here(
+                    input_line,
+                    portions,
+                    input_index + count,
+                    check_pattern_idx,
+                    backref_texts,
+                    next_outside_portion,
+                    processed
+                );
             }
             case ECharClass::DIGIT_LEAST_ONE:
             {
@@ -181,7 +218,15 @@ namespace cpp_grep{
                 }
 
                 check_pattern_idx++;
-                return match_here(input_line, portions, input_index + count, check_pattern_idx, backref_texts, processed);
+                return match_here(
+                    input_line,
+                    portions,
+                    input_index + count,
+                    check_pattern_idx,
+                    backref_texts,
+                    next_outside_portion,
+                    processed
+                );
             }
             case ECharClass::WORD_MOST_ONE:
             {
@@ -198,7 +243,15 @@ namespace cpp_grep{
                 }
 
                 check_pattern_idx++;
-                return match_here(input_line, portions, input_index + count, check_pattern_idx, backref_texts, processed);
+                return match_here(
+                    input_line,
+                    portions,
+                    input_index + count,
+                    check_pattern_idx,
+                    backref_texts,
+                    next_outside_portion,
+                    processed
+                );
             }
             case ECharClass::WORD_LEAST_ONE:
             {
@@ -216,7 +269,15 @@ namespace cpp_grep{
                 }
 
                 check_pattern_idx++;
-                return match_here(input_line, portions, input_index + count, check_pattern_idx, backref_texts, processed);
+                return match_here(
+                    input_line,
+                    portions,
+                    input_index + count,
+                    check_pattern_idx,
+                    backref_texts,
+                    next_outside_portion,
+                    processed
+                );
             }
             case ECharClass::CHAR_GROUP_MOST_ONE:
             {
@@ -226,22 +287,33 @@ namespace cpp_grep{
                 if (is_positive){
                     while ((input_index + i) < input_line.size() && char_grp.contains(input_line[input_index + i])){
                         i++;
+                        if (i > 1){
+                            return false;
+                        }
                     }
                 }
                 else{
                     while ((input_index + i) < input_line.size() && !char_grp.contains(input_line[input_index + i])){
                         i++;
+                        if (i > 1){
+                            return false;
+                        }
                     }
                 }
 
-                if (i > 1){
-                    return false;
-                }
                 if (processed != nullptr){
                     (*processed) += i;
                 }
                 check_pattern_idx++;
-                return match_here(input_line, portions, input_index + i, check_pattern_idx, backref_texts, processed);
+                return match_here(
+                    input_line,
+                    portions,
+                    input_index + i,
+                    check_pattern_idx,
+                    backref_texts,
+                    next_outside_portion,
+                    processed
+                );
             }
             case ECharClass::CHAR_GROUP_LEAST_ONE:
             {
@@ -253,11 +325,31 @@ namespace cpp_grep{
                 if (is_positive){
                     while ((input_index + i) < input_line.size() && char_grp.contains(input_line[input_index + i])){
                         i++;
+
                     }
                 }
                 else{
-                    while ((input_index + i) < input_line.size() && !char_grp.contains(input_line[input_index + i])){
-                        i++;
+                    if (
+                        next_outside_portion != nullptr
+                        && pattern_index == portions.size() - 1
+                        && next_outside_portion->get_char_cls() == ECharClass::LITERAL
+                    ){
+                        char next_chr = next_outside_portion->get_literal();
+                        while (
+                            (input_index + i) < input_line.size()
+                            && !char_grp.contains(input_line[input_index + i])
+                            && input_line[input_index + i] != next_chr
+                        ){
+                            i++;
+                        }
+                    }
+                    else {
+                        while (
+                            (input_index + i) < input_line.size()
+                            && !char_grp.contains(input_line[input_index + i])
+                        ){
+                            i++;
+                        }
                     }
                 }
 
@@ -269,7 +361,15 @@ namespace cpp_grep{
                     (*processed) += i;
                 }
                 check_pattern_idx++;
-                return match_here(input_line, portions, input_index + i, check_pattern_idx, backref_texts, processed);
+                return match_here(
+                    input_line,
+                    portions,
+                    input_index + i,
+                    check_pattern_idx,
+                    backref_texts,
+                    next_outside_portion,
+                    processed
+                );
             }
             case ECharClass::ANY_LEAST_ONE:
             {
@@ -288,11 +388,27 @@ namespace cpp_grep{
                         return false;
                     }
                     check_pattern_idx++;
-                    return match_here(input_line, portions, input_index + count, check_pattern_idx, backref_texts, processed);
+                    return match_here(
+                        input_line,
+                        portions,
+                        input_index + count,
+                        check_pattern_idx,
+                        backref_texts,
+                        next_outside_portion,
+                        processed
+                    );
                 }
                 else{
                     check_pattern_idx++;
-                    return match_here(input_line, portions, input_index + 1, check_pattern_idx, backref_texts, processed);
+                    return match_here(
+                        input_line,
+                        portions,
+                        input_index + 1,
+                        check_pattern_idx,
+                        backref_texts,
+                        next_outside_portion,
+                        processed
+                    );
                 }
             }
             case ECharClass::OR:
@@ -301,13 +417,13 @@ namespace cpp_grep{
                 const auto& pattern2 = portion.get_subpattern2();
                 uint count_a = 0;
                 uint count_b = 0;
-                if (match_here(input_line, pattern1, input_index, 0, backref_texts, &count_a)){
+                if (match_here(input_line, pattern1, input_index, 0, backref_texts, nullptr, &count_a)){
                     if (processed != nullptr){
                         (*processed) += count_a;
                     }
                     return true;
                 }
-                if (match_here(input_line, pattern2, input_index, 0, backref_texts, &count_b)){
+                if (match_here(input_line, pattern2, input_index, 0, backref_texts, nullptr, &count_b)){
                     if (processed != nullptr){
                         (*processed) += count_b;
                     }
@@ -322,9 +438,14 @@ namespace cpp_grep{
             {
                 uint count = 0;
                 ubyte reserved_slot = backref_texts.reserve_first_free_slot();
-                if (!match_here(input_line, portion.get_subpattern(), input_index, 0, backref_texts, &count)){
+                RegexPatternPortion* next_outside = nullptr;
+                if (pattern_index + 1 < portions.size()){
+                    next_outside = const_cast<RegexPatternPortion*>(portions.data()) + pattern_index + 1;
+                }
+                if (!match_here(input_line, portion.get_subpattern(), input_index, 0, backref_texts, next_outside, &count)){
                     return false;
                 }
+                next_outside = nullptr;
                 check_pattern_idx++;
                 if (processed != nullptr){
                     (*processed) += count;
@@ -335,7 +456,15 @@ namespace cpp_grep{
                 backref_texts.set_text_at(reserved_slot, input_line.substr(input_index, count));
 
                 input_index += count - 1;
-                return match_here(input_line, portions, input_index + 1, check_pattern_idx, backref_texts, processed);
+                return match_here(
+                    input_line,
+                    portions,
+                    input_index + 1,
+                    check_pattern_idx,
+                    backref_texts,
+                    next_outside_portion,
+                    processed
+                );
             }
             case ECharClass::PATTERN_MOST_ONE:
             {
@@ -343,7 +472,7 @@ namespace cpp_grep{
                 uint processed_chrs = 0;
                 uint processed_tot = 0;
                 ubyte reserved_slot = backref_texts.reserve_first_free_slot();
-                while (match_here(input_line, portion.get_subpattern(), input_index + processed_tot, 0, backref_texts, &processed_chrs)){
+                while (match_here(input_line, portion.get_subpattern(), input_index + processed_tot, 0, backref_texts, next_outside_portion, &processed_chrs)){
                     count++;
                     processed_tot += processed_chrs;
                     processed_chrs = 0;
@@ -363,7 +492,15 @@ namespace cpp_grep{
                 backref_texts.set_text_at(reserved_slot, input_line.substr(input_index, processed_tot));
 
                 check_pattern_idx++;
-                return match_here(input_line, portions, input_index + processed_tot, check_pattern_idx, backref_texts, processed);
+                return match_here(
+                    input_line,
+                    portions,
+                    input_index + processed_tot,
+                    check_pattern_idx,
+                    backref_texts,
+                    next_outside_portion,
+                    processed
+                );
             }
             case ECharClass::PATTERN_LEAST_ONE:
             {
@@ -371,7 +508,7 @@ namespace cpp_grep{
                 uint processed_chrs = 0;
                 uint processed_tot = 0;
                 ubyte reserved_slot = backref_texts.reserve_first_free_slot();
-                while (match_here(input_line.substr(input_index + processed_tot), portion.get_subpattern(), 0, 0, backref_texts, &processed_chrs)){
+                while (match_here(input_line.substr(input_index + processed_tot), portion.get_subpattern(), 0, 0, backref_texts, next_outside_portion, &processed_chrs)){
                     count++;
                     processed_tot += processed_chrs;
                     processed_chrs = 0;
@@ -402,6 +539,7 @@ namespace cpp_grep{
                     input_index + 1 + processed_tot,
                     check_pattern_idx,
                     backref_texts,
+                    next_outside_portion,
                     processed
                 );
             }
@@ -418,7 +556,15 @@ namespace cpp_grep{
                 }
 
                 check_pattern_idx++;
-                return match_here(input_line, portions, input_index + txt.size(), check_pattern_idx, backref_texts, processed);
+                return match_here(
+                    input_line,
+                    portions,
+                    input_index + txt.size(),
+                    check_pattern_idx,
+                    backref_texts,
+                    next_outside_portion,
+                    processed
+                );
             }
             case ECharClass::BACKREF_LEAST_ONE:
             {
@@ -439,7 +585,15 @@ namespace cpp_grep{
                 }
 
                 check_pattern_idx++;
-                return match_here(input_line, portions, input_index + count * txt_size, check_pattern_idx, backref_texts, processed);
+                return match_here(
+                    input_line,
+                    portions,
+                    input_index + count * txt_size,
+                    check_pattern_idx,
+                    backref_texts,
+                    next_outside_portion,
+                    processed
+                );
             }
             case ECharClass::BACKREF_MOST_ONE:
             {
@@ -460,7 +614,15 @@ namespace cpp_grep{
                 }
 
                 check_pattern_idx++;
-                return match_here(input_line, portions, input_index + count * txt_size, check_pattern_idx, backref_texts, processed);
+                return match_here(
+                    input_line,
+                    portions,
+                    input_index + count * txt_size,
+                    check_pattern_idx,
+                    backref_texts,
+                    next_outside_portion,
+                    processed
+                );
             }
             default:
                 break;
@@ -480,6 +642,7 @@ namespace cpp_grep{
             input_index + 1,
             check_pattern_idx,
             backref_texts,
+            next_outside_portion,
             processed
         );
     }
