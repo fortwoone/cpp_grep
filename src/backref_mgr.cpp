@@ -66,7 +66,9 @@ namespace cpp_grep{
         );
 
         if (found == end_iter){
-            throw out_of_range("All slots are reserved.");
+            BackRefText& item = back_ref_texts.emplace_back();
+            item.reserve();
+            return static_cast<ubyte>(back_ref_texts.size() - 1);
         }
 
         auto index = found - begin_iter;
