@@ -4,6 +4,7 @@
 #include <stdexcept>
 #include <string>
 #include <utility>
+#include <vector>
 
 #include "backref_mgr.hpp"
 #include "chr_class_handlers.hpp"
@@ -21,6 +22,7 @@ using std::runtime_error;
 using std::string;
 using std::unitbuf;
 using std::unreachable;
+using std::vector;
 
 namespace cpp_grep{
     namespace priv{
@@ -766,6 +768,117 @@ namespace cpp_grep{
             throw runtime_error("Unhandled pattern " + pattern);
         }
     }
+
+    bool match_in_files(const vector<string>& files, const string& pattern){
+        bool success = false;
+        string input_line;
+        if (pattern.length() == 1){
+            for (const auto& path: files){
+                ifstream file_obj(path);
+
+                while (getline(file_obj, input_line)){
+                    if (input_line.contains(pattern)){
+                        success = true;
+                        cout << path << ":" << input_line << "\n";
+                    }
+                }
+
+                file_obj.close();
+            }
+            return success;
+        }
+        else if (pattern == priv::DIGIT_CLS_PATTERN){
+            // Handle digit class.
+            for (const auto& path: files){
+                ifstream file_obj(path);
+
+                while (getline(file_obj, input_line)){
+                    if (match_digit_pattern(input_line)){
+                        success = true;
+                        cout << path << ":" << input_line << "\n";
+                    }
+                }
+
+                file_obj.close();
+            }
+            return success;
+        }
+        else if (pattern == priv::WORD_CLS_PATTERN){
+            // Handle word class.
+            for (const auto& path: files){
+                ifstream file_obj(path);
+
+                while (getline(file_obj, input_line)){
+                    if (match_word_pattern(input_line)){
+                        success = true;
+                        cout << path << ":" << input_line << "\n";
+                    }
+                }
+
+                file_obj.close();
+            }
+            return success;
+        }
+        else if (pattern.starts_with('[') && pattern.ends_with(']')){
+            // Character group
+            // Don't count the brackets while searching, they simply delimit the group itself.
+            auto stripped_pattern = pattern.substr(1, pattern.size() - 2);
+            if (stripped_pattern.starts_with('^')){
+                // Negative character group
+                for (const auto& path: files){
+                    ifstream file_obj(path);
+
+                    while (getline(file_obj, input_line)) {
+                        if (match_negative_character_grp(input_line, stripped_pattern.substr(1))) {
+                            success = true;
+                            cout << path << ":" << input_line << "\n";
+                        }
+                    }
+
+                    file_obj.close();
+                }
+                return success;
+            }
+            // Positive character group otherwise.
+            for (const auto& path: files){
+                ifstream file_obj(path);
+                while (getline(file_obj, input_line)) {
+                    if (match_positive_character_grp(input_line, stripped_pattern)) {
+                        success = true;
+                        cout << path << ":" << input_line << "\n";
+                    }
+                }
+                file_obj.close();
+            }
+            return success;
+        }
+        else if (pattern.length() > 1){
+            uint caught_grp_count = 0;
+            vector<RegexPatternPortion> portions = extract_patterns(pattern, caught_grp_count);
+            BackRefManager backref_texts(caught_grp_count);
+            for (const auto& path: files){
+                ifstream file_obj(path);
+                while (getline(file_obj, input_line)) {
+                    for (size_t start = 0; start <= input_line.size(); ++start) {
+                        if (match_here(input_line, portions, start, 0, backref_texts)) {
+                            success = true;
+                            cout << path << ":" << input_line << "\n";
+                            backref_texts.reset();
+                            break;
+                        }
+                        backref_texts.reset();
+                    }
+                }
+
+                file_obj.close();
+                backref_texts.reset();
+            }
+            return success;
+        }
+        else {
+            throw runtime_error("Unhandled pattern " + pattern);
+        }
+    }
 }
 
 int main(int argc, char* argv[]) {
@@ -787,6 +900,26 @@ int main(int argc, char* argv[]) {
     if (flag != "-E") {
         cerr << "Expected first argument to be '-E'" << endl;
         return 1;
+    }
+
+    if (argc > 4){
+        vector<string> file_paths;
+        file_paths.reserve(argc - 3);
+        for (int i = 3; i < argc; ++i){
+            file_paths.emplace_back(argv[i]);
+        }
+        try{
+            if (cpp_grep::match_in_files(file_paths, pattern)){
+                return 0;
+            }
+            else{
+                return 1;
+            }
+        }
+        catch (const runtime_error& e){
+            cerr << e.what() << endl;
+            return 1;
+        }
     }
 
     if (argc == 4){
