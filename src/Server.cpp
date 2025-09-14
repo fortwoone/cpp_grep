@@ -859,6 +859,7 @@ namespace cpp_grep{
             for (const auto& path: files){
                 ifstream file_obj(path);
                 while (getline(file_obj, input_line)) {
+                    cerr << "Current line (" << path << "): " << input_line << "\n";
                     for (size_t start = 0; start <= input_line.size(); ++start) {
                         if (match_here(input_line, portions, start, 0, backref_texts)) {
                             success = true;
